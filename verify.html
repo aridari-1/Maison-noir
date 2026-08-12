@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maison Noir — Verify a Certificate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tweetnacl@1.0.3/nacl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tweetnacl-util@0.15.1/nacl-util.min.js"></script>
+<style>
+  :root{
+    --bg:#080706;
+    --bg-vignette: radial-gradient(ellipse at 50% 0%, #14100c 0%, #0a0908 45%, #050403 100%);
+    --gold:#c9a961;
+    --gold-bright:#f0dfae;
+    --gold-deep:#7d6132;
+    --text:#efe8da;
+    --text-dim:#9a9182;
+    --text-faint:#6e6759;
+    --card-bg:#0d0b09;
+    --card-border:#221c14;
+    --good:#7fbf8e;
+    --bad:#d9705f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);}
+  body{
+    background:var(--bg-vignette);
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .wrap{
+    max-width:600px;
+    margin:0 auto;
+    padding:56px 24px 80px;
+  }
+  header{ text-align:center; margin-bottom:44px; }
+  .brand{
+    font-family:'Cormorant Garamond',serif;
+    letter-spacing:0.42em;
+    text-indent:0.42em;
+    font-size:13px;
+    color:var(--gold);
+    opacity:0.9;
+    margin-bottom:16px;
+  }
+  h1{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:400;
+    font-size:32px;
+    margin:0 0 14px;
+  }
+  .sub{
+    font-size:14px;
+    color:var(--text-dim);
+    line-height:1.7;
+    max-width:440px;
+    margin:0 auto;
+  }
+
+  .panel{
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:6px;
+    padding:26px;
+    margin-bottom:20px;
+  }
+  label{
+    display:block;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    margin-bottom:10px;
+  }
+  textarea{
+    width:100%;
+    min-height:160px;
+    background:#050403;
+    border:1px solid var(--card-border);
+    border-radius:4px;
+    color:var(--text);
+    font-family:'SF Mono',Consolas,monospace;
+    font-size:12.5px;
+    padding:14px;
+    resize:vertical;
+    line-height:1.6;
+  }
+  textarea:focus{ outline:none; border-color:var(--gold-deep); }
+  @media (max-width:600px){
+    textarea{ font-size:16px; }
+    .wrap{ padding:40px 18px 60px; }
+    .panel{ padding:20px; }
+  }
+
+  .verify-btn{
+    width:100%;
+    margin-top:16px;
+    padding:13px 0;
+    border-radius:4px;
+    border:1px solid var(--gold);
+    background:var(--gold);
+    color:#17130c;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    font-weight:600;
+    cursor:pointer;
+    transition:background 0.2s ease;
+  }
+  .verify-btn:hover{ background:var(--gold-bright); }
+
+  .result{
+    display:none;
+    border-radius:6px;
+    padding:22px 24px;
+    margin-top:6px;
+  }
+  .result.show{ display:block; }
+  .result.valid{
+    background:rgba(127,191,142,0.08);
+    border:1px solid rgba(127,191,142,0.35);
+  }
+  .result.invalid{
+    background:rgba(217,112,95,0.08);
+    border:1px solid rgba(217,112,95,0.35);
+  }
+  .result-title{
+    font-family:'Cormorant Garamond',serif;
+    font-size:20px;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .result.valid .result-title{ color:var(--good); }
+  .result.invalid .result-title{ color:var(--bad); }
+  .result-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:12.5px;
+    padding:6px 0;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .result-row span:first-child{ color:var(--text-faint); }
+  .result-row span:last-child{ color:var(--text); font-family:'SF Mono',Consolas,monospace; }
+
+  footer{
+    text-align:center;
+    margin-top:36px;
+    font-size:11px;
+    color:var(--text-faint);
+    line-height:1.7;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Maison&nbsp;Noir</div>
+    <h1>Verify a certificate</h1>
+    <p class="sub">Every piece is signed with a private key held only by Maison Noir. Paste the certificate below to confirm it's authentic — this check runs entirely in your browser, nothing is sent anywhere.</p>
+  </header>
+
+  <div class="panel">
+    <label for="certInput">Certificate JSON</label>
+    <textarea id="certInput" placeholder='Paste your certificate here, e.g.
+{
+  "id": "...",
+  "tier": "Gold Band",
+  "edition": 47,
+  "edition_total": 800,
+  "artwork_hash": "...",
+  "buyer_name": "...",
+  "issued_at": "...",
+  "signature": "..."
+}'></textarea>
+    <button class="verify-btn" id="verifyBtn">Verify authenticity</button>
+  </div>
+
+  <div class="result" id="result"></div>
+
+  <footer>
+    Verification uses public-key cryptography (Ed25519). Maison Noir's public key is embedded in this page's code and never changes for a given certificate. Anyone can audit this page's source to confirm it isn't sending your data anywhere.
+  </footer>
+</div>
+
+<script>
+  // Maison Noir's PUBLIC key — safe to publish, used only to verify signatures.
+  const PUBLIC_KEY_B64 = "4kGQQ3EgHwfJ6od2xFHPGrjtduEy7Pcod4m6HL12yfU=";
+
+  function buildMessage(cert){
+    return [
+      cert.id,
+      cert.tier,
+      String(cert.edition),
+      String(cert.edition_total),
+      cert.artwork_hash,
+      cert.buyer_name,
+      cert.issued_at
+    ].join("|");
+  }
+
+  function showResult(valid, cert, errorMsg){
+    const el = document.getElementById('result');
+    el.className = 'result show ' + (valid ? 'valid' : 'invalid');
+
+    if(!valid){
+      el.innerHTML = `
+        <div class="result-title">✕ Not verified</div>
+        <div class="result-row"><span>Reason</span><span>${errorMsg}</span></div>
+      `;
+      return;
+    }
+
+    el.innerHTML = `
+      <div class="result-title">✓ Genuine Maison Noir certificate</div>
+      <div class="result-row"><span>Tier</span><span>${cert.tier}</span></div>
+      <div class="result-row"><span>Edition</span><span>${cert.edition} of ${cert.edition_total}</span></div>
+      <div class="result-row"><span>Issued to</span><span>${cert.buyer_name}</span></div>
+      <div class="result-row"><span>Issued at</span><span>${cert.issued_at}</span></div>
+      <div class="result-row"><span>Certificate ID</span><span>${cert.id}</span></div>
+    `;
+  }
+
+  document.getElementById('verifyBtn').addEventListener('click', () => {
+    const raw = document.getElementById('certInput').value.trim();
+    let cert;
+    try{
+      cert = JSON.parse(raw);
+    }catch(e){
+      showResult(false, null, "That's not valid JSON. Paste the full certificate exactly as issued.");
+      return;
+    }
+
+    const required = ['id','tier','edition','edition_total','artwork_hash','buyer_name','issued_at','signature'];
+    for(const key of required){
+      if(!(key in cert)){
+        showResult(false, null, `Missing field: ${key}`);
+        return;
+      }
+    }
+
+    try{
+      const message = nacl.util.decodeUTF8(buildMessage(cert));
+      const signature = nacl.util.decodeBase64(cert.signature);
+      const publicKey = nacl.util.decodeBase64(PUBLIC_KEY_B64);
+      const valid = nacl.sign.detached.verify(message, signature, publicKey);
+      showResult(valid, cert, valid ? null : "Signature does not match. This certificate was altered or was not issued by Maison Noir.");
+    }catch(e){
+      showResult(false, null, "Could not verify — the certificate may be malformed.");
+    }
+  });
+</script>
+</body>
+</html>

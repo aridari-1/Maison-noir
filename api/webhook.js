@@ -1,0 +1,99 @@
+const Stripe = require('stripe');
+const { kv } = require('../lib/kv');
+const { randomUUID } = require('crypto');
+const { getRawBody } = require('../lib/rawBody');
+const { signCertificate } = require('../lib/certificate');
+const tiers = require('../lib/tiers');
+
+// Stripe requires the RAW, unparsed request body to verify the webhook
+// signature — so we turn off Vercel's automatic JSON body parsing here.
+module.exports.config = {
+  api: { bodyParser: false },
+};
+
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method not allowed');
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  const sig = req.headers['stripe-signature'];
+  const rawBody = await getRawBody(req);
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type !== 'checkout.session.completed') {
+    // We only care about completed payments — acknowledge everything else
+    // so Stripe doesn't retry events we're intentionally ignoring.
+    return res.status(200).json({ received: true, ignored: event.type });
+  }
+
+  const session = event.data.object;
+  const tierKey = session.metadata && session.metadata.tierKey;
+  const tier = tiers[tierKey];
+
+  if (!tier) {
+    console.error('Webhook received unknown tierKey:', tierKey, 'session:', session.id);
+    return res.status(200).json({ received: true, error: 'unknown tier, needs manual review' });
+  }
+
+  // Idempotency: Stripe can send the same event more than once. If we've
+  // already issued a certificate for this session, don't issue a second one.
+  const existing = await kv.get(`cert:${session.id}`);
+  if (existing) {
+    return res.status(200).json({ received: true, alreadyIssued: true });
+  }
+
+  // Atomic increment — this is what makes edition numbers safe even if two
+  // buyers complete checkout for the same tier at the same instant.
+  const edition = await kv.incr(`sold:${tierKey}`);
+
+  if (edition > tier.total) {
+    // Oversold edge case: the pre-check in create-checkout-session.js makes
+    // this very unlikely, but not impossible under a race. Payment was
+    // already captured, so this needs a human to refund and follow up —
+    // it must NOT silently issue a certificate beyond the stated supply.
+    await kv.set(
+      `oversold:${session.id}`,
+      JSON.stringify({
+        tierKey,
+        attemptedEdition: edition,
+        buyerEmail: session.customer_details && session.customer_details.email,
+        amountTotal: session.amount_total,
+        flaggedAt: new Date().toISOString(),
+      })
+    );
+    console.error('OVERSOLD — needs manual refund + follow-up:', session.id, tierKey);
+    return res.status(200).json({ received: true, oversold: true });
+  }
+
+  const buyerEmail = (session.customer_details && session.customer_details.email) || 'unknown';
+  const buyerName = (session.customer_details && session.customer_details.name) || buyerEmail;
+
+  const cert = {
+    id: randomUUID(),
+    tier: tier.name,
+    edition,
+    edition_total: tier.total,
+    artwork_hash: tier.artworkHash,
+    buyer_name: buyerName,
+    issued_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+  };
+  cert.signature = signCertificate(cert);
+
+  // Keyed by Stripe session id so success.html can fetch it right after
+  // redirect, and by buyer email so a simple "resend my certificate"
+  // lookup is possible later without a full database.
+  await kv.set(`cert:${session.id}`, JSON.stringify(cert));
+  await kv.set(`cert-by-email:${buyerEmail}:${cert.id}`, JSON.stringify(cert));
+
+  console.log(`Issued ${tier.name} #${edition}/${tier.total} to ${buyerEmail}`);
+
+  return res.status(200).json({ received: true, certificateId: cert.id });
+};

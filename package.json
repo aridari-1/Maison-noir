@@ -1,0 +1,13 @@
+{
+  "name": "maison-noir",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Maison Noir — animated site, certificate verification, and Stripe-backed checkout.",
+  "dependencies": {
+    "@upstash/redis": "^1.38.2",
+    "stripe": "^22.5.0",
+    "tweetnacl": "^1.0.3",
+    "tweetnacl-util": "^0.15.1",
+    "uuid": "^14.0.1"
+  }
+}

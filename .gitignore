@@ -1,0 +1,12 @@
+.DS_Store
+.vercel
+node_modules
+*.log
+
+# Never commit real signing keys
+maison_noir_private.key
+maison_noir_public.key
+scripts/maison_noir_private.key
+scripts/maison_noir_public.key
+node_modules
+.env.local

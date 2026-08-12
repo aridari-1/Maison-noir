@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maison Noir — Your Certificate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080706;
+    --gold:#c9a961;
+    --gold-bright:#f0dfae;
+    --gold-deep:#7d6132;
+    --text:#efe8da;
+    --text-dim:#9a9182;
+    --text-faint:#6e6759;
+    --card-bg:#0d0b09;
+    --card-border:#221c14;
+    --good:#7fbf8e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);}
+  body{
+    background:radial-gradient(ellipse at 50% 0%, #14100c 0%, #0a0908 45%, #050403 100%);
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    min-height:100vh;
+    min-height:100svh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{ max-width:520px; margin:0 auto; padding:64px 24px 80px; text-align:center; }
+  .brand{
+    font-family:'Cormorant Garamond',serif;
+    letter-spacing:0.42em; text-indent:0.42em;
+    font-size:13px; color:var(--gold); opacity:0.9; margin-bottom:40px;
+  }
+  .state{ display:none; }
+  .state.show{ display:block; }
+
+  .spinner{
+    width:28px; height:28px; margin:0 auto 24px;
+    border:2px solid var(--card-border);
+    border-top-color:var(--gold);
+    border-radius:50%;
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .waiting p{ color:var(--text-dim); font-size:14px; line-height:1.7; }
+
+  .panel{
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:6px;
+    padding:32px 26px;
+    text-align:left;
+  }
+  h1{
+    font-family:'Cormorant Garamond',serif; font-weight:400; font-size:26px;
+    color:var(--good); margin-bottom:22px; text-align:center;
+  }
+  .row{ display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.05); font-size:13px; }
+  .row span:first-child{ color:var(--text-faint); }
+  .row span:last-child{ font-family:'SF Mono',Consolas,monospace; text-align:right; }
+
+  .actions{ display:flex; gap:10px; margin-top:24px; }
+  .actions button, .actions a{
+    flex:1;
+    padding:12px 0;
+    border-radius:4px;
+    border:1px solid var(--gold);
+    background:transparent;
+    color:var(--gold);
+    font-family:'Inter',sans-serif;
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    text-align:center;
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .actions .primary{ background:var(--gold); color:#17130c; }
+
+  .error p{ color:var(--text-dim); font-size:14px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Maison&nbsp;Noir</div>
+
+  <div class="state waiting show" id="waiting">
+    <div class="spinner"></div>
+    <p>Confirming your payment and signing your certificate — this usually takes just a few seconds.</p>
+  </div>
+
+  <div class="state error" id="errorState">
+    <p id="errorText">Something went wrong. If you completed payment, your certificate is safe — refresh this page in a moment, or contact us with your confirmation email.</p>
+  </div>
+
+  <div class="state" id="ready">
+    <h1>✓ Your piece is signed</h1>
+    <div class="panel">
+      <div class="row"><span>Tier</span><span id="cTier"></span></div>
+      <div class="row"><span>Edition</span><span id="cEdition"></span></div>
+      <div class="row"><span>Issued to</span><span id="cBuyer"></span></div>
+      <div class="row"><span>Issued at</span><span id="cIssued"></span></div>
+      <div class="row"><span>Certificate ID</span><span id="cId"></span></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="downloadBtn">Download certificate</button>
+      <a href="verify.html" id="verifyLink">Verify it</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showState(id){
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('show'));
+    document.getElementById(id).classList.add('show');
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get('session_id');
+
+  if (!sessionId) {
+    document.getElementById('errorText').textContent = 'No checkout session found. If you just completed a purchase, check your email for a confirmation link.';
+    showState('errorState');
+  } else {
+    let cert = null;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    async function poll(){
+      attempts++;
+      try {
+        const res = await fetch(`/api/get-certificate?session_id=${encodeURIComponent(sessionId)}`);
+        if (res.status === 200) {
+          cert = await res.json();
+          renderCert(cert);
+          return;
+        }
+      } catch (e) { /* fall through to retry */ }
+
+      if (attempts >= maxAttempts) {
+        document.getElementById('errorText').textContent = "Payment received, but your certificate is taking longer than usual to sign. It will still arrive — refresh this page shortly.";
+        showState('errorState');
+        return;
+      }
+      setTimeout(poll, 1500);
+    }
+
+    function renderCert(cert){
+      document.getElementById('cTier').textContent = cert.tier;
+      document.getElementById('cEdition').textContent = `${cert.edition} of ${cert.edition_total}`;
+      document.getElementById('cBuyer').textContent = cert.buyer_name;
+      document.getElementById('cIssued').textContent = cert.issued_at;
+      document.getElementById('cId').textContent = cert.id;
+      showState('ready');
+
+      document.getElementById('downloadBtn').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(cert, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `maison-noir-${cert.tier.toLowerCase().replace(/\s+/g,'-')}-${cert.edition}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    poll();
+  }
+</script>
+</body>
+</html>

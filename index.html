@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maison Noir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+  :root{
+    --bg:#050403;
+    --gold:#c9a961;
+    --gold-bright:#f2e2b3;
+    --gold-deep:#7d6132;
+    --ember:#ff7a2e;
+    --ember-core:#ffe1a8;
+    --cream:#ece2ce;
+    --text:#efe8da;
+    --text-dim:#8f8672;
+    --text-faint:#514a3d;
+    --line:#221c14;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html{ background:var(--bg); scroll-behavior:smooth; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    overflow-x:hidden;
+    cursor:none;
+    width:100%;
+  }
+  a, button{ touch-action:manipulation; }
+  @media (max-width:900px){ body{ cursor:auto; } }
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+  }
+  ::selection{ background:var(--gold); color:#0a0806; }
+
+  /* ---------- custom cursor ---------- */
+  .cursor{
+    position:fixed; top:0; left:0;
+    width:9px; height:9px;
+    border-radius:50%;
+    background:var(--gold);
+    pointer-events:none;
+    z-index:999;
+    transform:translate(-50%,-50%);
+    transition:width 0.25s ease, height 0.25s ease, background 0.25s ease;
+  }
+  .cursor.big{ width:46px; height:46px; background:rgba(201,169,97,0.12); border:1px solid var(--gold); }
+  @media (max-width:900px){ .cursor{ display:none; } }
+
+  /* ---------- ember canvas ---------- */
+  #ember-canvas{
+    position:fixed; inset:0;
+    width:100%; height:100%;
+    z-index:0;
+    pointer-events:none;
+    opacity:0.55;
+  }
+
+  /* ---------- preloader ---------- */
+  .preloader{
+    position:fixed; inset:0;
+    background:#050403;
+    z-index:1000;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .preloader-mark{
+    font-family:'Cormorant Garamond',serif;
+    font-size:15px;
+    letter-spacing:0.5em;
+    text-indent:0.5em;
+    color:var(--gold);
+    opacity:0;
+  }
+
+  section{ position:relative; z-index:1; }
+
+  /* ---------- nav ---------- */
+  nav{
+    position:fixed; top:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:26px 44px;
+    z-index:100;
+    mix-blend-mode:difference;
+  }
+  .nav-mark{
+    font-family:'Cormorant Garamond',serif;
+    font-size:15px;
+    letter-spacing:0.38em;
+    text-indent:0.38em;
+    color:var(--text);
+  }
+  .nav-link{
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--text);
+    text-decoration:none;
+    border-bottom:1px solid currentColor;
+    padding-bottom:2px;
+    white-space:nowrap;
+  }
+  @media (max-width:600px){
+    nav{ padding:20px 22px; }
+    .nav-mark{ font-size:12px; letter-spacing:0.28em; text-indent:0.28em; }
+    .nav-link{ font-size:9.5px; }
+  }
+
+  /* ---------- hero ---------- */
+  .hero{
+    height:100vh;
+    height:100svh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:0 20px;
+    position:relative;
+  }
+  .hero-eyebrow{
+    font-size:11px;
+    letter-spacing:0.3em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:28px;
+    overflow:hidden;
+  }
+  .hero-eyebrow span{ display:inline-block; }
+  .hero h1{
+    font-family:'Inter',sans-serif;
+    font-weight:800;
+    font-size:clamp(34px, 11vw, 128px);
+    line-height:0.94;
+    letter-spacing:-0.02em;
+    text-transform:uppercase;
+    color:var(--text);
+  }
+  .hero h1 .line{ overflow:hidden; }
+  .hero h1 .line span{ display:inline-block; }
+  .hero h1 .accent{
+    font-family:'Cormorant Garamond',serif;
+    font-style:italic;
+    font-weight:400;
+    text-transform:none;
+    color:var(--gold);
+    letter-spacing:0;
+  }
+  .hero-sub{
+    margin-top:30px;
+    max-width:420px;
+    font-size:14.5px;
+    line-height:1.8;
+    color:var(--text-dim);
+    opacity:0;
+  }
+  .scroll-cue{
+    position:absolute;
+    bottom:38px; left:50%;
+    transform:translateX(-50%);
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    opacity:0;
+  }
+  .scroll-cue .line{
+    width:1px; height:44px;
+    background:linear-gradient(180deg, var(--gold), transparent);
+    animation:cue 2s ease-in-out infinite;
+  }
+  .scroll-cue span{
+    font-size:9.5px; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-faint);
+  }
+  @keyframes cue{ 0%,100%{ transform:scaleY(0.6); opacity:0.4; } 50%{ transform:scaleY(1); opacity:1; } }
+
+  /* ---------- pinned collection ---------- */
+  .collection-pin{
+    height:100vh;
+    height:100svh;
+    display:flex;
+    align-items:center;
+    overflow:hidden;
+  }
+  @media (max-width:900px){
+    .collection-pin{
+      height:auto;
+      min-height:100svh;
+      padding:120px 0 60px;
+      overflow:visible;
+    }
+    .track{
+      overflow-x:auto;
+      scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      padding:0 6vw !important;
+    }
+    .track::-webkit-scrollbar{ display:none; }
+    .tier-panel{ scroll-snap-align:center; }
+  }
+  .collection-head{
+    position:absolute;
+    top:64px; left:44px;
+    z-index:2;
+  }
+  .collection-head .eyebrow{
+    font-size:11px; letter-spacing:0.25em; text-transform:uppercase; color:var(--text-faint);
+    margin-bottom:8px;
+  }
+  .collection-head h2{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:400;
+    font-size:clamp(26px,3vw,38px);
+  }
+  .track{
+    display:flex;
+    gap:34px;
+    padding:0 8vw;
+    will-change:transform;
+  }
+  .tier-panel{
+    flex:0 0 auto;
+    width:min(360px, 78vw);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:38px 32px 32px;
+    background:linear-gradient(180deg, #0b0906, #050403);
+    display:flex; flex-direction:column; align-items:center;
+    text-align:center;
+    transition:border-color 0.3s ease, transform 0.15s ease;
+    text-decoration:none;
+    color:inherit;
+    cursor:pointer;
+  }
+  .tier-panel:hover{ border-color:var(--gold-deep); }
+  .tier-panel:active{ transform:scale(0.97); border-color:var(--gold); }
+  .tier-index{
+    font-size:11px; letter-spacing:0.2em; color:var(--text-faint); margin-bottom:24px;
+  }
+  .tier-render{
+    width:52px; height:140px; position:relative; margin-bottom:26px;
+  }
+  .tier-render .body{ position:absolute; left:18px; right:18px; top:0; bottom:0; border-radius:2px; }
+  .tier-render .tipcap{ position:absolute; left:18px; right:18px; top:0; height:8px; border-radius:2px 2px 0 0; background:#3a3735; }
+  .tier-render .band{ position:absolute; left:14px; right:14px; top:32px; height:7px; }
+  .tier-render .filter{ position:absolute; left:18px; right:18px; bottom:0; top:39px; border-radius:0 0 2px 2px; }
+  .r-ember .body{ background:linear-gradient(90deg,#141210,#1c1a17,#141210); }
+  .r-ember .band{ background:linear-gradient(180deg,#8a8478,#5a564c); }
+  .r-ember .filter{ background:linear-gradient(90deg,#b8ac93,#d3c7ab,#b8ac93); }
+  .r-gold .body{ background:linear-gradient(90deg,#0c0b0a,#242220,#0c0b0a); }
+  .r-gold .band{ background:linear-gradient(180deg,var(--gold-bright),var(--gold-deep)); }
+  .r-gold .filter{ background:linear-gradient(90deg,#d8c9a8,var(--cream),#c9bb9e); }
+  .r-plat .body{ background:linear-gradient(90deg,#0a0a0b,#26282c,#0a0a0b); }
+  .r-plat .band{ background:linear-gradient(180deg,#f2f4f6,#b9c1c8); }
+  .r-plat .filter{ background:linear-gradient(90deg,#e7e2da,#faf7f0,#e7e2da); }
+  .r-founder .body{ background:linear-gradient(90deg,#100a04,#2c1c0c,#100a04); }
+  .r-founder .tipcap{ background:linear-gradient(180deg,var(--ember-core),var(--ember)); box-shadow:0 0 12px 3px rgba(255,130,50,0.4); }
+  .r-founder .band{ background:linear-gradient(180deg,var(--gold-bright),var(--gold)); height:9px; top:30px; }
+  .r-founder .filter{ background:linear-gradient(90deg,#e0cfa8,#f4e6c4,#e0cfa8); top:41px; }
+  .tier-panel h3{ font-family:'Cormorant Garamond',serif; font-size:24px; margin-bottom:10px; }
+  .tier-panel p{ font-size:12.5px; line-height:1.7; color:var(--text-dim); margin-bottom:20px; }
+  .tier-panel .price{ font-size:12px; letter-spacing:0.08em; color:var(--gold); margin-bottom:14px; }
+  .tier-panel .cta{
+    font-size:10px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--text-faint);
+    border-top:1px solid var(--line);
+    padding-top:14px;
+    width:100%;
+  }
+  .tier-panel:hover .cta, .tier-panel:active .cta{ color:var(--gold); }
+
+  /* ---------- ritual (line reveal) ---------- */
+  .ritual{
+    padding:180px 44px;
+    max-width:780px;
+    margin:0 auto;
+  }
+  .ritual .eyebrow{ font-size:11px; letter-spacing:0.25em; text-transform:uppercase; color:var(--text-faint); margin-bottom:26px; }
+  .ritual p{
+    font-family:'Cormorant Garamond',serif;
+    font-weight:400;
+    font-size:clamp(26px,3.6vw,42px);
+    line-height:1.4;
+  }
+  .ritual .reveal-line{ overflow:hidden; }
+  .ritual .reveal-line span{ display:inline-block; opacity:0.14; }
+  .ritual em{ font-style:italic; color:var(--gold); }
+
+  /* ---------- verify strip ---------- */
+  .verify{
+    padding:120px 44px 160px;
+    display:flex;
+    justify-content:center;
+    text-align:center;
+  }
+  .verify-inner{ max-width:520px; }
+  .verify .eyebrow{ font-size:11px; letter-spacing:0.25em; text-transform:uppercase; color:var(--text-faint); margin-bottom:22px; }
+  .verify h2{ font-family:'Cormorant Garamond',serif; font-weight:400; font-size:clamp(28px,4vw,40px); margin-bottom:20px; }
+  .verify p{ font-size:14px; line-height:1.8; color:var(--text-dim); margin-bottom:34px; }
+  .verify-btn{
+    display:inline-block;
+    padding:15px 34px;
+    border:1px solid var(--gold);
+    color:var(--gold);
+    text-decoration:none;
+    font-size:11.5px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    border-radius:2px;
+    transition:background 0.25s ease, color 0.25s ease;
+  }
+  .verify-btn:hover{ background:var(--gold); color:#0a0806; }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:36px 44px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+    font-size:10.5px;
+    letter-spacing:0.05em;
+    color:var(--text-faint);
+  }
+
+  @media (max-width:600px){
+    .collection-head{ position:static; padding:0 22px; margin-bottom:32px; text-align:left; }
+    .ritual{ padding:110px 24px; }
+    .verify{ padding:80px 24px 110px; }
+    footer{ padding:28px 22px; font-size:9.5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="preloader" id="preloader">
+  <div class="preloader-mark" id="preloaderMark">MAISON&nbsp;NOIR</div>
+</div>
+
+<div class="cursor" id="cursor"></div>
+<canvas id="ember-canvas"></canvas>
+
+<nav>
+  <div class="nav-mark">Maison&nbsp;Noir</div>
+  <a class="nav-link" href="#verify">Verify a piece</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-eyebrow"><span id="eyebrowText">A COMMITMENT, NOT A HABIT</span></div>
+  <h1>
+    <div class="line"><span>LIGHT WHAT</span></div>
+    <div class="line"><span>YOU MEAN <span class="accent">to quit</span></span></div>
+  </h1>
+  <p class="hero-sub" id="heroSub">Each piece is a signed, one-of-an-edition artwork that changes as your real streak grows. No blockchain required — just a ritual, and a certificate no one can forge.</p>
+  <div class="scroll-cue"><div class="line"></div><span>Scroll</span></div>
+</section>
+
+<section class="collection-pin">
+  <div class="collection-head">
+    <div class="eyebrow">The Collection</div>
+    <h2>Four ways to begin.</h2>
+  </div>
+  <div class="track" id="track">
+    <a class="tier-panel" href="mint.html#tier-ember">
+      <div class="tier-index">01 — Entry</div>
+      <div class="tier-render r-ember"><div class="tipcap"></div><div class="band"></div><div class="filter"></div><div class="body"></div></div>
+      <h3>Ember</h3>
+      <p>Matte and unadorned. For the first day of trying.</p>
+      <div class="price">0.02 ETH equiv.</div>
+      <div class="cta">View pricing →</div>
+    </a>
+    <a class="tier-panel" href="mint.html#tier-gold">
+      <div class="tier-index">02 — Signature</div>
+      <div class="tier-render r-gold"><div class="tipcap"></div><div class="band"></div><div class="filter"></div><div class="body"></div></div>
+      <h3>Gold Band</h3>
+      <p>The house design. Where most journeys begin.</p>
+      <div class="price">0.05 ETH equiv.</div>
+      <div class="cta">View pricing →</div>
+    </a>
+    <a class="tier-panel" href="mint.html#tier-platinum">
+      <div class="tier-index">03 — Collector</div>
+      <div class="tier-render r-plat"><div class="tipcap"></div><div class="band"></div><div class="filter"></div><div class="body"></div></div>
+      <h3>Platinum</h3>
+      <p>For streaks worn visibly. Higher polish, lower count.</p>
+      <div class="price">0.12 ETH equiv.</div>
+      <div class="cta">View pricing →</div>
+    </a>
+    <a class="tier-panel" href="mint.html#tier-founder">
+      <div class="tier-index">04 — Founder's Cut</div>
+      <div class="tier-render r-founder"><div class="tipcap"></div><div class="band"></div><div class="filter"></div><div class="body"></div></div>
+      <h3>Founder's Cut</h3>
+      <p>Lit from day one. Fifty pieces, custom-signed.</p>
+      <div class="price">0.35 ETH equiv.</div>
+      <div class="cta">View pricing →</div>
+    </a>
+  </div>
+</section>
+
+<section class="ritual">
+  <div class="eyebrow">The Ritual</div>
+  <p>
+    <span class="reveal-line"><span>Every time you'd reach for a real one,</span></span><br>
+    <span class="reveal-line"><span>you open this <em>instead.</em></span></span><br>
+    <span class="reveal-line"><span>The piece remembers. You don't have to.</span></span>
+  </p>
+</section>
+
+<section class="verify" id="verify">
+  <div class="verify-inner">
+    <div class="eyebrow">Provenance</div>
+    <h2>Signed. Not speculative.</h2>
+    <p>Every certificate is cryptographically signed and independently verifiable — by you, a buyer, or anyone — without trusting a database or paying gas to check.</p>
+    <a class="verify-btn" href="verify.html">Verify a certificate</a>
+  </div>
+</section>
+
+<footer>
+  <div>© Maison Noir</div>
+  <div style="display:flex; gap:18px;">
+    <a href="prototype.html" style="color:inherit; text-decoration:none; border-bottom:1px solid currentColor;">The ritual, live</a>
+    <a href="mint.html" style="color:inherit; text-decoration:none; border-bottom:1px solid currentColor;">Pricing</a>
+  </div>
+  <div>Not a medical device. Not investment advice.</div>
+</footer>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+
+/* ---------- preloader ---------- */
+const tl0 = gsap.timeline();
+tl0.to('#preloaderMark', { opacity:1, duration:0.9, ease:'power2.out' })
+   .to('#preloaderMark', { opacity:1, duration:0.5 })
+   .to('#preloader', { opacity:0, duration:0.8, ease:'power2.inOut', onComplete:()=>{ document.getElementById('preloader').style.display='none'; } })
+   .from('.hero-eyebrow span', { yPercent:120, duration:0.7, ease:'power3.out' }, '-=0.3')
+   .from('.hero h1 .line span', { yPercent:120, duration:0.9, ease:'power3.out', stagger:0.08 }, '-=0.4')
+   .to('#heroSub', { opacity:1, duration:0.8 }, '-=0.4')
+   .to('.scroll-cue', { opacity:1, duration:0.6 }, '-=0.3');
+
+/* ---------- cursor (desktop / non-touch only) ---------- */
+const isTouch = matchMedia('(hover: none), (pointer: coarse)').matches;
+const cursor = document.getElementById('cursor');
+if(!isTouch){
+  window.addEventListener('mousemove', e=>{
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+  });
+  document.querySelectorAll('a, .tier-panel, nav').forEach(el=>{
+    el.addEventListener('mouseenter', ()=> cursor.classList.add('big'));
+    el.addEventListener('mouseleave', ()=> cursor.classList.remove('big'));
+  });
+} else {
+  cursor.style.display = 'none';
+}
+
+/* ---------- pinned horizontal collection (desktop only) ---------- */
+/* On touch/narrow screens, the .track scrolls natively via CSS overflow-x
+   with scroll-snap instead — scroll-jacking horizontal drag feels broken
+   on touch, so we don't force it there. */
+const track = document.getElementById('track');
+let mm = gsap.matchMedia();
+
+mm.add('(min-width: 901px)', () => {
+  function getScrollDistance(){
+    return track.scrollWidth - window.innerWidth + 160;
+  }
+  const st = ScrollTrigger.create({
+    trigger: '.collection-pin',
+    start: 'top top',
+    end: () => '+=' + getScrollDistance(),
+    pin: true,
+    scrub: 1,
+    invalidateOnRefresh: true,
+    animation: gsap.to(track, { x: () => -getScrollDistance(), ease:'none' })
+  });
+  return () => st.kill();
+});
+
+/* ---------- ritual line reveal ---------- */
+gsap.utils.toArray('.reveal-line span').forEach(line=>{
+  gsap.to(line, {
+    opacity:1,
+    duration:0.8,
+    ease:'power2.out',
+    scrollTrigger:{ trigger:line, start:'top 82%', end:'top 55%', scrub:0.5 }
+  });
+});
+
+/* ---------- ember particle field ---------- */
+const canvas = document.getElementById('ember-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+function resize(){
+  W = canvas.width = window.innerWidth * Math.min(window.devicePixelRatio||1, 2);
+  H = canvas.height = window.innerHeight * Math.min(window.devicePixelRatio||1, 2);
+  canvas.style.width = window.innerWidth+'px';
+  canvas.style.height = window.innerHeight+'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+function spawn(){
+  particles.push({
+    x: Math.random()*W,
+    y: H + 20,
+    r: (1 + Math.random()*2.2) * (window.devicePixelRatio||1),
+    vy: -(0.15 + Math.random()*0.35) * (window.devicePixelRatio||1),
+    vx: (Math.random()-0.5) * 0.15 * (window.devicePixelRatio||1),
+    life:0,
+    maxLife: 500 + Math.random()*400,
+    flicker: Math.random()*Math.PI*2,
+    hue: Math.random() > 0.6 ? 'ember' : 'gold'
+  });
+}
+
+const maxParticles = window.innerWidth < 600 ? 32 : 70;
+function loop(){
+  ctx.clearRect(0,0,W,H);
+  if(particles.length < maxParticles && Math.random() < 0.6) spawn();
+
+  particles.forEach(p=>{
+    p.life++;
+    p.y += p.vy;
+    p.flicker += 0.05;
+    p.x += p.vx + Math.sin(p.flicker)*0.2;
+    const t = p.life / p.maxLife;
+    const a = Math.sin(t * Math.PI) * 0.55;
+    const color = p.hue === 'ember' ? '255,130,60' : '201,169,97';
+    const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*3);
+    grad.addColorStop(0, `rgba(${color},${a})`);
+    grad.addColorStop(1, `rgba(${color},0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r*3,0,Math.PI*2);
+    ctx.fill();
+  });
+  particles = particles.filter(p => p.life < p.maxLife);
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
