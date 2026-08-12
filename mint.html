@@ -523,11 +523,21 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tierKey })
         });
-        const data = await res.json();
+
+        let data = {};
+        try {
+          data = await res.json();
+        } catch (parseErr) {
+          console.error('Checkout endpoint returned a non-JSON response (status ' + res.status + '). This usually means the function crashed before returning a normal error — check Vercel → Deployments → latest → Functions logs for create-checkout-session.');
+        }
 
         if(res.ok && data.url){
           window.location.href = data.url;
           return;
+        }
+
+        if(data.error){
+          console.error('Checkout could not start:', data.error);
         }
 
         if(data.error && data.error.toLowerCase().includes('sold out')){
@@ -537,9 +547,11 @@
 
         // Stripe not configured on this deployment yet, or any other
         // setup issue — fall back to the waitlist so the button still
-        // does something useful for the visitor.
+        // does something useful for the visitor. The real reason is
+        // logged to the console above for debugging.
         openWaitlist(tierName, `Minting isn't live yet. Leave your email and you'll be the first to know when ${tierName} opens — before it's announced anywhere else.`);
       } catch (err) {
+        console.error('Checkout request failed entirely:', err.message);
         openWaitlist(tierName, `Minting isn't live yet. Leave your email and you'll be the first to know when ${tierName} opens — before it's announced anywhere else.`);
       } finally {
         if(btn.textContent === 'Redirecting…'){

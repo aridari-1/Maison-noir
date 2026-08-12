@@ -3,41 +3,49 @@ const { kv } = require('../lib/kv');
 const tiers = require('../lib/tiers');
 
 module.exports = async (req, res) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { tierKey } = req.body || {};
-  const tier = tiers[tierKey];
-  if (!tier) {
-    return res.status(400).json({ error: 'Unknown tier' });
-  }
-
-  // Soft pre-check so we don't send someone to Stripe for a sold-out tier.
-  // The webhook does the final, authoritative check at issuance time —
-  // this one just avoids a bad user experience in the common case.
-  const sold = parseInt((await kv.get(`sold:${tierKey}`)) || '0', 10);
-  if (sold >= tier.total) {
-    return res.status(409).json({ error: `${tier.name} is sold out.` });
-  }
-
-  const priceId = process.env[tier.priceEnv];
-  if (!priceId) {
-    return res.status(500).json({
-      error: `Missing Stripe price ID. Set the ${tier.priceEnv} environment variable in Vercel.`,
-    });
-  }
-
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(500).json({ error: 'Stripe is not configured on this deployment yet.' });
-  }
-  if (!process.env.SITE_URL) {
-    return res.status(500).json({ error: 'SITE_URL environment variable is not set.' });
-  }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
   try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { tierKey } = req.body || {};
+    const tier = tiers[tierKey];
+    if (!tier) {
+      return res.status(400).json({ error: 'Unknown tier' });
+    }
+
+    // Check configuration FIRST, before touching any external service —
+    // this way a missing env var always produces a clear message instead
+    // of a confusing crash from whatever we happened to call first.
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(500).json({ error: 'Stripe is not configured on this deployment yet (missing STRIPE_SECRET_KEY).' });
+    }
+    if (!process.env.SITE_URL) {
+      return res.status(500).json({ error: 'SITE_URL environment variable is not set.' });
+    }
+    const priceId = process.env[tier.priceEnv];
+    if (!priceId) {
+      return res.status(500).json({
+        error: `Missing Stripe price ID. Set the ${tier.priceEnv} environment variable in Vercel.`,
+      });
+    }
+
+    // Soft pre-check so we don't send someone to Stripe for a sold-out tier.
+    // The webhook does the final, authoritative check at issuance time.
+    // If storage itself is unreachable/misconfigured, we deliberately don't
+    // block checkout on that — we log it and let Stripe checkout proceed,
+    // since the webhook's atomic check is what actually protects supply.
+    let sold = 0;
+    try {
+      sold = parseInt((await kv.get(`sold:${tierKey}`)) || '0', 10);
+    } catch (kvErr) {
+      console.error('KV read failed (continuing without sold-out pre-check):', kvErr.message);
+    }
+    if (sold >= tier.total) {
+      return res.status(409).json({ error: `${tier.name} is sold out.` });
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: [{ price: priceId, quantity: 1 }],
@@ -47,7 +55,9 @@ module.exports = async (req, res) => {
     });
     return res.status(200).json({ url: session.url });
   } catch (err) {
-    console.error('Stripe session creation failed:', err.message);
-    return res.status(500).json({ error: 'Could not start checkout. Please try again.' });
+    // Last-resort catch-all so the client ALWAYS gets a real error message
+    // instead of a bare 500 with no body.
+    console.error('create-checkout-session failed:', err && err.message, err && err.stack);
+    return res.status(500).json({ error: `Checkout failed: ${err && err.message ? err.message : 'unknown error'}` });
   }
 };
