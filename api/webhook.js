@@ -82,10 +82,15 @@ async function handler(req, res) {
     };
     cert.signature = signCertificate(cert);
 
-    // Keyed by Stripe session id so success.html can fetch it right after
-    // redirect, and by buyer email so a simple "resend my certificate"
-    // lookup is possible later without a full database.
+    // Keyed three ways:
+    //  - by Stripe session id, so success.html can fetch it right after redirect
+    //  - by certificate id, which is the PERMANENT, bookmarkable identifier
+    //    used by ritual.html — this is what still works weeks later, long
+    //    after the Stripe session itself has expired
+    //  - by buyer email, so a simple "resend my certificate" lookup is
+    //    possible later without a full database
     await kv.set(`cert:${session.id}`, JSON.stringify(cert));
+    await kv.set(`cert-id:${cert.id}`, JSON.stringify(cert));
     await kv.set(`cert-by-email:${buyerEmail}:${cert.id}`, JSON.stringify(cert));
 
     console.log(`Issued ${tier.name} #${edition}/${tier.total} to ${buyerEmail}`);
