@@ -135,13 +135,34 @@
       <a href="verify.html" id="verifyLink">Verify it</a>
     </div>
     <div class="save-note">This piece can be lit once — like the real thing. Bookmark your ritual link now; it isn't emailed to you yet.</div>
+    <div class="save-note" id="debugNote" style="display:none;"></div>
+  </div>
+
+  <div class="state error" id="stuckState">
+    <p style="color:var(--text-dim); font-size:14px; line-height:1.7;">Your payment went through, but this page is having trouble showing your certificate. Nothing is lost — try the button below.</p>
+    <div class="actions" style="margin-top:20px;">
+      <button class="primary" id="manualCheckBtn" style="flex:1; border-radius:4px; padding:12px 0; border:1px solid var(--gold); background:var(--gold); color:#17130c; font-family:'Inter',sans-serif; font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;">Check again</button>
+    </div>
+    <p id="debugInfo" style="margin-top:18px; font-size:10.5px; color:var(--text-faint); font-family:monospace; text-align:left; white-space:pre-wrap; word-break:break-all;"></p>
   </div>
 </div>
 
 <script>
+  // Surface any uncaught error directly on the page — we can't see a
+  // phone's console remotely, so this is the only way to actually debug
+  // mobile-specific issues without a cable and a computer.
+  window.addEventListener('error', (e) => {
+    const el = document.getElementById('debugInfo');
+    if (el) el.textContent += `\n[error] ${e.message} (${e.filename}:${e.lineno})`;
+  });
   function showState(id){
     document.querySelectorAll('.state').forEach(s => s.classList.remove('show'));
     document.getElementById(id).classList.add('show');
+  }
+
+  function debugLog(msg){
+    const el = document.getElementById('debugInfo');
+    if (el) el.textContent += `\n${msg}`;
   }
 
   const params = new URLSearchParams(window.location.search);
@@ -151,27 +172,18 @@
     document.getElementById('errorText').textContent = 'No checkout session found. If you just completed a purchase, check your email for a confirmation link.';
     showState('errorState');
   } else {
-    let cert = null;
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 20; // ~40s total — mobile/Apple Pay can be slower than desktop card entry
 
-    async function poll(){
-      attempts++;
-      try {
-        const res = await fetch(`/api/get-certificate?session_id=${encodeURIComponent(sessionId)}`);
-        if (res.status === 200) {
-          cert = await res.json();
-          renderCert(cert);
-          return;
-        }
-      } catch (e) { /* fall through to retry */ }
-
-      if (attempts >= maxAttempts) {
-        document.getElementById('errorText').textContent = "Payment received, but your certificate is taking longer than usual to sign. It will still arrive — refresh this page shortly.";
-        showState('errorState');
-        return;
+    async function fetchCert(){
+      const res = await fetch(`/api/get-certificate?session_id=${encodeURIComponent(sessionId)}`);
+      if (res.status === 200) {
+        return await res.json();
       }
-      setTimeout(poll, 1500);
+      if (res.status === 404) {
+        return null; // not ready yet — this is expected, not an error
+      }
+      throw new Error(`Unexpected response: ${res.status}`);
     }
 
     function renderCert(cert){
@@ -193,6 +205,70 @@
         URL.revokeObjectURL(url);
       });
     }
+
+    async function poll(){
+      attempts++;
+      let cert = null;
+      let networkError = null;
+
+      try {
+        cert = await fetchCert();
+      } catch (e) {
+        networkError = e;
+        debugLog(`Attempt ${attempts}: fetch failed — ${e.message}`);
+      }
+
+      if (cert) {
+        // Rendering errors are NOT the same as "not ready yet" — if this
+        // throws, we want to see it, not silently retry forever.
+        try {
+          renderCert(cert);
+        } catch (renderErr) {
+          debugLog(`Render error: ${renderErr.message}`);
+          showStuck();
+        }
+        return;
+      }
+
+      if (attempts >= maxAttempts) {
+        showStuck();
+        return;
+      }
+      setTimeout(poll, 2000);
+    }
+
+    function showStuck(){
+      showState('stuckState');
+    }
+
+    document.getElementById('manualCheckBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('manualCheckBtn');
+      btn.textContent = 'Checking…';
+      btn.disabled = true;
+      try {
+        const cert = await fetchCert();
+        if (cert) {
+          renderCert(cert);
+        } else {
+          btn.textContent = 'Not ready yet — try again';
+          btn.disabled = false;
+          debugLog('Manual check: certificate not ready yet.');
+        }
+      } catch (e) {
+        btn.textContent = 'Check again';
+        btn.disabled = false;
+        debugLog(`Manual check failed: ${e.message}`);
+      }
+    });
+
+    // iOS Safari can throttle or pause setTimeout in a backgrounded tab —
+    // if the page becomes visible again mid-poll, check immediately
+    // instead of waiting for the next scheduled tick.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && document.getElementById('waiting').classList.contains('show')) {
+        poll();
+      }
+    });
 
     poll();
   }
