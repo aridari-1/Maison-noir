@@ -114,6 +114,7 @@
   <div class="state waiting show" id="waiting">
     <div class="spinner"></div>
     <p>Confirming your payment and signing your certificate — this usually takes just a few seconds.</p>
+    <p id="liveDebug" style="margin-top:20px; font-size:10px; color:var(--text-faint); font-family:monospace; text-align:left; white-space:pre-wrap; word-break:break-all; min-height:16px;"></p>
   </div>
 
   <div class="state error" id="errorState">
@@ -148,51 +149,78 @@
 </div>
 
 <script>
-  // Surface any uncaught error directly on the page — we can't see a
-  // phone's console remotely, so this is the only way to actually debug
-  // mobile-specific issues without a cable and a computer.
+  // This writes to a debug line that's visible on-screen from the very
+  // first moment the page loads — not hidden inside a later state — so
+  // that if anything fails early, it's actually visible instead of just
+  // leaving the spinner running with no clue why.
+  function debugLog(msg){
+    const el = document.getElementById('liveDebug');
+    if (el) el.textContent += (el.textContent ? '\n' : '') + msg;
+    console.log('[Maison Noir debug]', msg);
+  }
+
   window.addEventListener('error', (e) => {
-    const el = document.getElementById('debugInfo');
-    if (el) el.textContent += `\n[error] ${e.message} (${e.filename}:${e.lineno})`;
+    debugLog(`[uncaught error] ${e.message} at ${e.filename}:${e.lineno}`);
   });
+  window.addEventListener('unhandledrejection', (e) => {
+    debugLog(`[unhandled promise rejection] ${e.reason}`);
+  });
+
+  debugLog('Script started.');
+
   function showState(id){
     document.querySelectorAll('.state').forEach(s => s.classList.remove('show'));
     document.getElementById(id).classList.add('show');
   }
 
-  function debugLog(msg){
-    const el = document.getElementById('debugInfo');
-    if (el) el.textContent += `\n${msg}`;
-  }
-
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get('session_id');
+  debugLog(`session_id from URL: ${sessionId || '(none)'}`);
+
+  // Hard watchdog, completely independent of the poll loop below. Even if
+  // poll() itself is somehow broken or never starts, this guarantees the
+  // page moves off the spinner and shows whatever debug info we have —
+  // "stuck silently forever" should now be impossible.
+  const watchdog = setTimeout(() => {
+    debugLog('Watchdog fired — poll loop did not complete in time.');
+    showState('stuckState');
+    const info = document.getElementById('debugInfo');
+    const live = document.getElementById('liveDebug');
+    if (info && live) info.textContent = live.textContent;
+  }, 8000);
 
   if (!sessionId) {
+    clearTimeout(watchdog);
     document.getElementById('errorText').textContent = 'No checkout session found. If you just completed a purchase, check your email for a confirmation link.';
     showState('errorState');
   } else {
     let attempts = 0;
-    const maxAttempts = 20; // ~40s total — mobile/Apple Pay can be slower than desktop card entry
+    const maxAttempts = 20;
 
     async function fetchCert(){
+      debugLog(`Fetching certificate (attempt ${attempts})...`);
       const res = await fetch(`/api/get-certificate?session_id=${encodeURIComponent(sessionId)}`);
+      debugLog(`Response status: ${res.status}`);
       if (res.status === 200) {
-        return await res.json();
+        const data = await res.json();
+        debugLog('Certificate received successfully.');
+        return data;
       }
       if (res.status === 404) {
-        return null; // not ready yet — this is expected, not an error
+        return null;
       }
       throw new Error(`Unexpected response: ${res.status}`);
     }
 
     function renderCert(cert){
+      debugLog('Rendering certificate...');
       document.getElementById('cTier').textContent = cert.tier;
       document.getElementById('cEdition').textContent = `${cert.edition} of ${cert.edition_total}`;
       document.getElementById('cBuyer').textContent = cert.buyer_name;
       document.getElementById('cIssued').textContent = cert.issued_at;
       document.getElementById('cId').textContent = cert.id;
       document.getElementById('ritualLink').href = `ritual.html?cert=${encodeURIComponent(cert.id)}`;
+      clearTimeout(watchdog);
       showState('ready');
 
       document.getElementById('downloadBtn').addEventListener('click', () => {
@@ -204,41 +232,39 @@
         a.click();
         URL.revokeObjectURL(url);
       });
+      debugLog('Render complete.');
     }
 
     async function poll(){
       attempts++;
       let cert = null;
-      let networkError = null;
 
       try {
         cert = await fetchCert();
       } catch (e) {
-        networkError = e;
-        debugLog(`Attempt ${attempts}: fetch failed — ${e.message}`);
+        debugLog(`Fetch error: ${e.message}`);
       }
 
       if (cert) {
-        // Rendering errors are NOT the same as "not ready yet" — if this
-        // throws, we want to see it, not silently retry forever.
         try {
           renderCert(cert);
         } catch (renderErr) {
           debugLog(`Render error: ${renderErr.message}`);
-          showStuck();
+          clearTimeout(watchdog);
+          showState('stuckState');
+          document.getElementById('debugInfo').textContent = document.getElementById('liveDebug').textContent;
         }
         return;
       }
 
       if (attempts >= maxAttempts) {
-        showStuck();
+        debugLog('Max attempts reached.');
+        clearTimeout(watchdog);
+        showState('stuckState');
+        document.getElementById('debugInfo').textContent = document.getElementById('liveDebug').textContent;
         return;
       }
       setTimeout(poll, 2000);
-    }
-
-    function showStuck(){
-      showState('stuckState');
     }
 
     document.getElementById('manualCheckBtn').addEventListener('click', async () => {
@@ -252,24 +278,22 @@
         } else {
           btn.textContent = 'Not ready yet — try again';
           btn.disabled = false;
-          debugLog('Manual check: certificate not ready yet.');
         }
       } catch (e) {
         btn.textContent = 'Check again';
         btn.disabled = false;
         debugLog(`Manual check failed: ${e.message}`);
+        document.getElementById('debugInfo').textContent = document.getElementById('liveDebug').textContent;
       }
     });
 
-    // iOS Safari can throttle or pause setTimeout in a backgrounded tab —
-    // if the page becomes visible again mid-poll, check immediately
-    // instead of waiting for the next scheduled tick.
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && document.getElementById('waiting').classList.contains('show')) {
         poll();
       }
     });
 
+    debugLog('Starting poll loop.');
     poll();
   }
 </script>
