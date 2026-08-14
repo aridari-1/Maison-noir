@@ -194,11 +194,10 @@
     document.getElementById('errorText').textContent = 'No checkout session found. If you just completed a purchase, check your email for a confirmation link.';
     showState('errorState');
   } else {
-    let attempts = 0;
     const maxAttempts = 20;
 
-    async function fetchCert(){
-      debugLog(`Fetching certificate (attempt ${attempts})...`);
+    async function fetchCert(attemptNum){
+      debugLog(`Fetching certificate (attempt ${attemptNum})...`);
       const res = await fetch(`/api/get-certificate?session_id=${encodeURIComponent(sessionId)}`);
       debugLog(`Response status: ${res.status}`);
       if (res.status === 200) {
@@ -235,12 +234,19 @@
       debugLog('Render complete.');
     }
 
-    async function poll(){
-      attempts++;
+    function showStuckWithLog(){
+      clearTimeout(watchdog);
+      showState('stuckState');
+      const info = document.getElementById('debugInfo');
+      const live = document.getElementById('liveDebug');
+      if (info && live) info.textContent = live.textContent;
+    }
+
+    async function poll(attemptNum){
       let cert = null;
 
       try {
-        cert = await fetchCert();
+        cert = await fetchCert(attemptNum);
       } catch (e) {
         debugLog(`Fetch error: ${e.message}`);
       }
@@ -250,21 +256,17 @@
           renderCert(cert);
         } catch (renderErr) {
           debugLog(`Render error: ${renderErr.message}`);
-          clearTimeout(watchdog);
-          showState('stuckState');
-          document.getElementById('debugInfo').textContent = document.getElementById('liveDebug').textContent;
+          showStuckWithLog();
         }
         return;
       }
 
-      if (attempts >= maxAttempts) {
+      if (attemptNum >= maxAttempts) {
         debugLog('Max attempts reached.');
-        clearTimeout(watchdog);
-        showState('stuckState');
-        document.getElementById('debugInfo').textContent = document.getElementById('liveDebug').textContent;
+        showStuckWithLog();
         return;
       }
-      setTimeout(poll, 2000);
+      setTimeout(() => poll(attemptNum + 1), 2000);
     }
 
     document.getElementById('manualCheckBtn').addEventListener('click', async () => {
@@ -272,7 +274,7 @@
       btn.textContent = 'Checking…';
       btn.disabled = true;
       try {
-        const cert = await fetchCert();
+        const cert = await fetchCert(0);
         if (cert) {
           renderCert(cert);
         } else {
@@ -283,18 +285,21 @@
         btn.textContent = 'Check again';
         btn.disabled = false;
         debugLog(`Manual check failed: ${e.message}`);
-        document.getElementById('debugInfo').textContent = document.getElementById('liveDebug').textContent;
+        const info = document.getElementById('debugInfo');
+        const live = document.getElementById('liveDebug');
+        if (info && live) info.textContent = live.textContent;
       }
     });
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && document.getElementById('waiting').classList.contains('show')) {
-        poll();
+        debugLog('Page became visible again — checking now.');
+        poll(1);
       }
     });
 
     debugLog('Starting poll loop.');
-    poll();
+    poll(1);
   }
 </script>
 </body>
