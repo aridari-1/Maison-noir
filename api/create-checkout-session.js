@@ -31,18 +31,19 @@ module.exports = async (req, res) => {
     }
 
     // Soft pre-check so we don't send someone to Stripe for a sold-out tier.
-    // The webhook does the final, authoritative check at issuance time.
-    // If storage itself is unreachable/misconfigured, we deliberately don't
-    // block checkout on that — we log it and let Stripe checkout proceed,
-    // since the webhook's atomic check is what actually protects supply.
-    let sold = 0;
-    try {
-      sold = parseInt((await kv.get(`sold:${tierKey}`)) || '0', 10);
-    } catch (kvErr) {
-      console.error('KV read failed (continuing without sold-out pre-check):', kvErr.message);
-    }
-    if (sold >= tier.total) {
-      return res.status(409).json({ error: `${tier.name} is sold out.` });
+    // Skipped entirely when tier.total is null (unlimited) — most tiers
+    // now, since this is a wellness tool, not a scarce collectible, and
+    // nobody who wants a piece should be turned away by an artificial cap.
+    if (tier.total !== null) {
+      let sold = 0;
+      try {
+        sold = parseInt((await kv.get(`sold:${tierKey}`)) || '0', 10);
+      } catch (kvErr) {
+        console.error('KV read failed (continuing without sold-out pre-check):', kvErr.message);
+      }
+      if (sold >= tier.total) {
+        return res.status(409).json({ error: `${tier.name} is sold out.` });
+      }
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);

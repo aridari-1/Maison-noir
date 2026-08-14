@@ -45,11 +45,12 @@ async function handler(req, res) {
       return res.status(200).json({ received: true, alreadyIssued: true });
     }
 
-    // Atomic increment — this is what makes edition numbers safe even if two
-    // buyers complete checkout for the same tier at the same instant.
+    // Atomic increment — still tracked for every tier (nice to know "you
+    // were purchase #412"), but only enforced as a cap when tier.total
+    // is set. Unlimited tiers just keep counting up forever.
     const edition = await kv.incr(`sold:${tierKey}`);
 
-    if (edition > tier.total) {
+    if (tier.total !== null && edition > tier.total) {
       // Oversold edge case: the pre-check in create-checkout-session.js makes
       // this very unlikely, but not impossible under a race. Payment was
       // already captured, so this needs a human to refund and follow up —

@@ -34,7 +34,9 @@
     color:var(--text);
     -webkit-font-smoothing:antialiased;
   }
+  #ambient-canvas{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; opacity:0.45; z-index:0; }
   .wrap{
+    position:relative; z-index:1;
     max-width:980px;
     margin:0 auto;
     padding:56px 24px 80px;
@@ -50,16 +52,21 @@
     font-weight:400;
     letter-spacing:0.42em;
     text-indent:0.42em;
-    font-size:14px;
+    font-size:13px;
     color:var(--gold);
     opacity:0.9;
-    margin-bottom:20px;
+    margin-bottom:14px;
+  }
+  .brand-rule{
+    width:30px; height:1px; margin:0 auto 34px;
+    background:linear-gradient(90deg,transparent,var(--gold-deep),transparent);
+    opacity:0.6;
   }
   h1{
     font-family:'Cormorant Garamond',serif;
     font-weight:400;
-    font-size:44px;
-    line-height:1.15;
+    font-size:clamp(30px, 6.5vw, 44px);
+    line-height:1.18;
     margin:0 0 18px;
     letter-spacing:0.01em;
   }
@@ -95,10 +102,6 @@
     padding:18px 0;
     border-top:1px solid var(--card-border);
     border-bottom:1px solid var(--card-border);
-  }
-  @media (max-width:480px){
-    h1{ font-size:32px; }
-    .wrap{ padding:40px 18px 60px; }
   }
   .supply-stat{ text-align:center; }
   .supply-stat .num{
@@ -268,7 +271,7 @@
   }
   .mint-btn{
     width:100%;
-    padding:11px 0;
+    padding:14px 0;
     border-radius:3px;
     border:1px solid rgba(201,169,97,0.4);
     background:transparent;
@@ -382,19 +385,52 @@
     line-height:1.6;
   }
   .modal-confirm.show{ display:block; }
+
+  /* ---------- responsive — placed last so these correctly override the
+     base rules above at matching specificity ---------- */
+  @media (max-width:900px){
+    .wrap{ padding:48px 20px 70px; }
+    header{ margin-bottom:48px; }
+  }
+  @media (max-width:600px){
+    .wrap{ padding:40px 16px 60px; }
+    header{ margin-bottom:40px; }
+    .sub{ font-size:14px; }
+    .supply-strip{ margin:32px 0 44px; gap:22px 28px; }
+    .tiers{ gap:14px; }
+    .tier-card{ padding:22px 18px 20px; }
+    .tier-card.featured::before{ font-size:9px; }
+    .modal-box{ padding:28px 22px; }
+  }
+  @media (max-width:380px){
+    h1{ letter-spacing:0; }
+    .cig-render{ width:48px; height:130px; }
+    .cig-render .body,.cig-render .tipcap,.cig-render .filter{ left:16px; right:16px; }
+    .cig-render .band{ left:12px; right:12px; }
+    .supply-strip{ gap:16px 22px; }
+  }
+  @media (hover: none){
+    /* touch devices can't hover — use a lighter tap feedback instead of
+       relying on :hover, which never fires on a phone */
+    .tier-card:active{ transform:translateY(-1px); border-color:rgba(201,169,97,0.3); }
+    .mint-btn:active{ background:var(--gold); color:#17130c; }
+    .tier-card.featured .mint-btn:active{ background:var(--gold-bright); }
+  }
 </style>
 </head>
 <body>
+<canvas id="ambient-canvas"></canvas>
 <div class="wrap">
   <header>
     <div class="brand">Maison&nbsp;Noir</div>
+    <div class="brand-rule"></div>
     <h1>A ritual you carry,<br><em>not a habit you hide.</em></h1>
     <p class="sub">Each piece marks a commitment to smoke less — its finish changes as your streak grows. Choose the starting design that matches how far you're ready to go.</p>
     <p class="caption-note">This is a self-tracked commitment tool, not a medical device or cessation program. Progress is logged by you, for you.</p>
   </header>
 
   <div class="supply-strip">
-    <div class="supply-stat"><span class="num">3,050</span><span class="label">Total supply</span></div>
+    <div class="supply-stat"><span class="num">Always</span><span class="label">Available</span></div>
     <div class="supply-stat"><span class="num">4</span><span class="label">Tiers</span></div>
     <div class="supply-stat"><span class="num">Base</span><span class="label">Chain</span></div>
   </div>
@@ -407,8 +443,6 @@
       <div class="tier-name">Ember</div>
       <div class="tier-tagline">A quiet first step. Simple, unadorned, honest.</div>
       <div class="tier-price">0.02 ETH<span class="unit">≈ starting tier</span></div>
-      <div class="tier-supply">2,000 available</div>
-      <div class="bar-track"><div class="bar-fill" style="width:38%"></div></div>
       <button class="mint-btn" data-tier="Ember" data-tier-key="ember">Mint Ember</button>
     </div>
 
@@ -419,8 +453,6 @@
       <div class="tier-name">Gold Band</div>
       <div class="tier-tagline">The signature piece. Where most journeys begin.</div>
       <div class="tier-price">0.05 ETH<span class="unit">≈ signature tier</span></div>
-      <div class="tier-supply">800 available</div>
-      <div class="bar-track"><div class="bar-fill" style="width:61%"></div></div>
       <button class="mint-btn" data-tier="Gold Band" data-tier-key="gold">Mint Gold Band</button>
     </div>
 
@@ -431,8 +463,6 @@
       <div class="tier-name">Platinum</div>
       <div class="tier-tagline">For those further along, wearing it visibly.</div>
       <div class="tier-price">0.12 ETH<span class="unit">≈ collector tier</span></div>
-      <div class="tier-supply">200 available</div>
-      <div class="bar-track"><div class="bar-fill" style="width:22%"></div></div>
       <button class="mint-btn" data-tier="Platinum" data-tier-key="platinum">Mint Platinum</button>
     </div>
 
@@ -441,16 +471,14 @@
         <div class="tipcap"></div><div class="band"></div><div class="filter"></div><div class="body"></div>
       </div>
       <div class="tier-name">Founder's Cut</div>
-      <div class="tier-tagline">Lit from day one. Custom art, 50 ever made.</div>
-      <div class="tier-price">0.35 ETH<span class="unit">≈ 50 only</span></div>
-      <div class="tier-supply">50 available</div>
-      <div class="bar-track"><div class="bar-fill" style="width:14%"></div></div>
+      <div class="tier-tagline">Lit from day one. The house's fullest expression.</div>
+      <div class="tier-price">0.35 ETH<span class="unit">≈ highest tier</span></div>
       <button class="mint-btn" data-tier="Founder's Cut" data-tier-key="founder">Mint Founder's Cut</button>
     </div>
   </div>
 
   <footer>
-    <p>Prices and supply shown are set by the site owner and may not reflect a live catalog. Minting is not medical advice, treatment, or a guarantee of any outcome — it's a personal commitment ritual. Payments, when enabled, are processed securely by Stripe; Maison Noir never sees or stores your card details.</p>
+    <p>Prices shown are set by the site owner and may not reflect a live catalog. Every tier is available without limit — nobody committing to this ritual should be turned away by a cap. Minting is not medical advice, treatment, or a guarantee of any outcome; it's a personal commitment ritual. Payments, when enabled, are processed securely by Stripe; Maison Noir never sees or stores your card details.</p>
   </footer>
 </div>
 
@@ -472,6 +500,48 @@
 </div>
 
 <script>
+  /* ambient background embers — same system as ritual.html, for visual
+     continuity as someone moves between pages */
+  const ambientCanvas = document.getElementById('ambient-canvas');
+  const actx = ambientCanvas.getContext('2d');
+  let ambientParticles = [];
+  function resizeAmbient(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    ambientCanvas.width = window.innerWidth * dpr;
+    ambientCanvas.height = window.innerHeight * dpr;
+    ambientCanvas.style.width = window.innerWidth + 'px';
+    ambientCanvas.style.height = window.innerHeight + 'px';
+    actx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resizeAmbient);
+  resizeAmbient();
+  function spawnAmbient(){
+    ambientParticles.push({
+      x: Math.random()*window.innerWidth,
+      y: window.innerHeight + 10,
+      r: 0.8 + Math.random()*1.4,
+      vy: -(0.08 + Math.random()*0.14),
+      life:0, maxLife: 600 + Math.random()*400,
+      wobble: Math.random()*Math.PI*2,
+    });
+  }
+  const maxAmbient = window.innerWidth < 600 ? 14 : 26;
+  function ambientLoop(){
+    actx.clearRect(0,0,window.innerWidth,window.innerHeight);
+    if (ambientParticles.length < maxAmbient && Math.random() < 0.4) spawnAmbient();
+    ambientParticles.forEach(p=>{
+      p.life++; p.wobble += 0.008;
+      p.y += p.vy; p.x += Math.sin(p.wobble)*0.15;
+      const t = p.life/p.maxLife;
+      const a = Math.sin(t*Math.PI) * 0.3;
+      actx.fillStyle = `rgba(201,169,97,${a})`;
+      actx.beginPath(); actx.arc(p.x,p.y,p.r,0,Math.PI*2); actx.fill();
+    });
+    ambientParticles = ambientParticles.filter(p=>p.life<p.maxLife);
+    requestAnimationFrame(ambientLoop);
+  }
+  ambientLoop();
+
   // Highlight the card if arrived at via a direct link (e.g. from the landing page)
   window.addEventListener('DOMContentLoaded', () => {
     const hash = window.location.hash;
