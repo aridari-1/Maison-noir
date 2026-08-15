@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Maison Noir — Your Certificate</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="favicon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Maison Noir — Your Certificate">
+<meta property="og:description" content="Signed, verifiable, and yours. Begin the ritual.">
+<meta property="og:image" content="https://maison-noir-two-chi.vercel.app/og-image.jpg">
+<meta property="og:url" content="https://maison-noir-two-chi.vercel.app/success.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Maison Noir — Your Certificate">
+<meta name="twitter:description" content="Signed, verifiable, and yours. Begin the ritual.">
+<meta name="twitter:image" content="https://maison-noir-two-chi.vercel.app/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -30,14 +42,53 @@
     min-height:100svh;
     -webkit-font-smoothing:antialiased;
   }
-  .wrap{ max-width:520px; margin:0 auto; padding:64px 24px 80px; text-align:center; }
+  #ambient-canvas{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; opacity:0.45; z-index:0; }
+  .wrap{ position:relative; z-index:1; max-width:480px; margin:0 auto; padding:56px 24px 80px; text-align:center; }
   .brand{
     font-family:'Cormorant Garamond',serif;
     letter-spacing:0.42em; text-indent:0.42em;
-    font-size:13px; color:var(--gold); opacity:0.9; margin-bottom:40px;
+    font-size:13px; color:var(--gold); opacity:0.9; margin-bottom:6px;
+  }
+  .brand-rule{
+    width:30px; height:1px; margin:0 auto 40px;
+    background:linear-gradient(90deg,transparent,var(--gold-deep),transparent);
+    opacity:0.6;
   }
   .state{ display:none; }
   .state.show{ display:block; }
+
+  .hero-render{ width:44px; height:120px; position:relative; margin:0 auto 26px; }
+  .hero-render .body{ position:absolute; left:15px; right:15px; top:0; bottom:0; border-radius:2px; }
+  .hero-render .tipcap{ position:absolute; left:15px; right:15px; top:0; height:8px; border-radius:2px 2px 0 0; background:#3a3735; }
+  .hero-render .band{ position:absolute; left:11px; right:11px; top:28px; height:6px; }
+  .hero-render .filter{ position:absolute; left:15px; right:15px; bottom:0; top:34px; border-radius:0 0 2px 2px; }
+  .t-ember .body{ background:linear-gradient(90deg,#141210,#1c1a17,#141210); }
+  .t-ember .band{ background:linear-gradient(180deg,#8a8478,#5a564c); }
+  .t-ember .filter{ background:linear-gradient(90deg,#b8ac93,#d3c7ab,#b8ac93); }
+  .t-gold .body{ background:linear-gradient(90deg,#0c0b0a,#242220,#0c0b0a); }
+  .t-gold .band{ background:linear-gradient(180deg,#f0dfae,var(--gold-deep)); }
+  .t-gold .filter{ background:linear-gradient(90deg,#d8c9a8,#ece2ce,#c9bb9e); }
+  .t-plat .body{ background:linear-gradient(90deg,#0a0a0b,#26282c,#0a0a0b); }
+  .t-plat .band{ background:linear-gradient(180deg,#f2f4f6,#b9c1c8); }
+  .t-plat .filter{ background:linear-gradient(90deg,#e7e2da,#faf7f0,#e7e2da); }
+  .t-founder .body{ background:linear-gradient(90deg,#100a04,#2c1c0c,#100a04); }
+  .t-founder .band{ background:linear-gradient(180deg,#f0dfae,var(--gold)); }
+  .t-founder .filter{ background:linear-gradient(90deg,#e0cfa8,#f4e6c4,#e0cfa8); }
+
+  .details-toggle{
+    margin-top:16px;
+  }
+  .details-toggle summary{
+    font-size:10.5px; letter-spacing:0.06em; color:var(--text-faint);
+    cursor:pointer; list-style:none; text-align:center;
+  }
+  .details-toggle summary::-webkit-details-marker{ display:none; }
+  .details-toggle summary:hover{ color:var(--text-dim); }
+  .details-toggle[open] summary{ margin-bottom:10px; }
+  #liveDebug, #debugInfo{
+    font-size:10px; color:var(--text-faint); font-family:monospace;
+    text-align:left; white-space:pre-wrap; word-break:break-all; min-height:0;
+  }
 
   .spinner{
     width:28px; height:28px; margin:0 auto 24px;
@@ -108,13 +159,18 @@
 </style>
 </head>
 <body>
+<canvas id="ambient-canvas"></canvas>
 <div class="wrap">
   <div class="brand">Maison&nbsp;Noir</div>
+  <div class="brand-rule"></div>
 
   <div class="state waiting show" id="waiting">
     <div class="spinner"></div>
     <p>Confirming your payment and signing your certificate — this usually takes just a few seconds.</p>
-    <p id="liveDebug" style="margin-top:20px; font-size:10px; color:var(--text-faint); font-family:monospace; text-align:left; white-space:pre-wrap; word-break:break-all; min-height:16px;"></p>
+    <details class="details-toggle">
+      <summary>Show details</summary>
+      <p id="liveDebug"></p>
+    </details>
   </div>
 
   <div class="state error" id="errorState">
@@ -122,6 +178,9 @@
   </div>
 
   <div class="state" id="ready">
+    <div class="hero-render" id="heroRender">
+      <div class="tipcap"></div><div class="band"></div><div class="filter"></div><div class="body"></div>
+    </div>
     <h1>✓ Your piece is signed</h1>
     <div class="panel">
       <div class="row"><span>Tier</span><span id="cTier"></span></div>
@@ -144,11 +203,56 @@
     <div class="actions" style="margin-top:20px;">
       <button class="primary" id="manualCheckBtn" style="flex:1; border-radius:4px; padding:12px 0; border:1px solid var(--gold); background:var(--gold); color:#17130c; font-family:'Inter',sans-serif; font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;">Check again</button>
     </div>
-    <p id="debugInfo" style="margin-top:18px; font-size:10.5px; color:var(--text-faint); font-family:monospace; text-align:left; white-space:pre-wrap; word-break:break-all;"></p>
+    <details class="details-toggle">
+      <summary>Show details</summary>
+      <p id="debugInfo"></p>
+    </details>
   </div>
 </div>
 
 <script>
+  /* ambient background embers — same system as ritual.html and mint.html,
+     for visual continuity across the whole purchase flow */
+  const ambientCanvas = document.getElementById('ambient-canvas');
+  const actx = ambientCanvas.getContext('2d');
+  let ambientParticles = [];
+  function resizeAmbient(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    ambientCanvas.width = window.innerWidth * dpr;
+    ambientCanvas.height = window.innerHeight * dpr;
+    ambientCanvas.style.width = window.innerWidth + 'px';
+    ambientCanvas.style.height = window.innerHeight + 'px';
+    actx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resizeAmbient);
+  resizeAmbient();
+  function spawnAmbient(){
+    ambientParticles.push({
+      x: Math.random()*window.innerWidth,
+      y: window.innerHeight + 10,
+      r: 0.8 + Math.random()*1.4,
+      vy: -(0.08 + Math.random()*0.14),
+      life:0, maxLife: 600 + Math.random()*400,
+      wobble: Math.random()*Math.PI*2,
+    });
+  }
+  const maxAmbient = window.innerWidth < 600 ? 14 : 26;
+  function ambientLoop(){
+    actx.clearRect(0,0,window.innerWidth,window.innerHeight);
+    if (ambientParticles.length < maxAmbient && Math.random() < 0.4) spawnAmbient();
+    ambientParticles.forEach(p=>{
+      p.life++; p.wobble += 0.008;
+      p.y += p.vy; p.x += Math.sin(p.wobble)*0.15;
+      const t = p.life/p.maxLife;
+      const a = Math.sin(t*Math.PI) * 0.3;
+      actx.fillStyle = `rgba(201,169,97,${a})`;
+      actx.beginPath(); actx.arc(p.x,p.y,p.r,0,Math.PI*2); actx.fill();
+    });
+    ambientParticles = ambientParticles.filter(p=>p.life<p.maxLife);
+    requestAnimationFrame(ambientLoop);
+  }
+  ambientLoop();
+
   // This writes to a debug line that's visible on-screen from the very
   // first moment the page loads — not hidden inside a later state — so
   // that if anything fails early, it's actually visible instead of just
@@ -211,8 +315,16 @@
       throw new Error(`Unexpected response: ${res.status}`);
     }
 
+    const tierClassMap = {
+      'Ember': 't-ember',
+      'Gold Band': 't-gold',
+      'Platinum': 't-plat',
+      "Founder's Cut": 't-founder',
+    };
+
     function renderCert(cert){
       debugLog('Rendering certificate...');
+      document.getElementById('heroRender').className = 'hero-render ' + (tierClassMap[cert.tier] || 't-gold');
       document.getElementById('cTier').textContent = cert.tier;
       document.getElementById('cEdition').textContent = cert.edition_total ? `${cert.edition} of ${cert.edition_total}` : `#${cert.edition}`;
       document.getElementById('cBuyer').textContent = cert.buyer_name;

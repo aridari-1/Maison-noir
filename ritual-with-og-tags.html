@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maison Noir — Your Ritual</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="favicon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Maison Noir — Your Ritual">
+<meta property="og:description" content="Light it once, like the real thing. Then it's gone.">
+<meta property="og:image" content="https://maison-noir-two-chi.vercel.app/og-image.jpg">
+<meta property="og:url" content="https://maison-noir-two-chi.vercel.app/ritual.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Maison Noir — Your Ritual">
+<meta name="twitter:description" content="Light it once, like the real thing. Then it's gone.">
+<meta name="twitter:image" content="https://maison-noir-two-chi.vercel.app/og-image.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080706;
+    --gold:#c9a961;
+    --gold-bright:#f2e2b3;
+    --gold-deep:#7d6132;
+    --ember:#ff7a2e;
+    --ember-core:#ffe1a8;
+    --cream:#ece2ce;
+    --text:#efe8da;
+    --text-dim:#9a9182;
+    --text-faint:#5c5445;
+    --card-bg:#0d0b09;
+    --card-border:#221c14;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);}
+  body{
+    background:radial-gradient(ellipse at 50% 32%, #16110c 0%, #0a0908 55%, #050403 100%);
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    min-height:100vh; min-height:100svh;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  #ambient-canvas{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; opacity:0.5; z-index:0; }
+
+  .wrap{ position:relative; z-index:1; max-width:480px; margin:0 auto; padding:52px 24px 90px; text-align:center; }
+  .brand{
+    font-family:'Cormorant Garamond',serif;
+    letter-spacing:0.42em; text-indent:0.42em;
+    font-size:12.5px; color:var(--gold); opacity:0.9; margin-bottom:6px;
+  }
+  .brand-rule{
+    width:30px; height:1px; margin:0 auto 40px;
+    background:linear-gradient(90deg,transparent,var(--gold-deep),transparent);
+    opacity:0.6;
+  }
+
+  .state{ opacity:0; transition:opacity 0.6s ease; pointer-events:none; height:0; overflow:hidden; }
+  .state.show{ opacity:1; pointer-events:auto; height:auto; overflow:visible; }
+  .spinner{
+    width:24px; height:24px; margin:60px auto; border:1px solid var(--card-border);
+    border-top-color:var(--gold); border-radius:50%; animation:spin 1s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  .stage{
+    position:relative; height:360px;
+    display:flex; align-items:flex-end; justify-content:center;
+    margin-bottom:6px;
+  }
+  #smoke-canvas{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+  .plinth{
+    position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
+    width:90px; height:14px;
+    background:radial-gradient(ellipse, rgba(201,169,97,0.14), transparent 72%);
+    border-radius:50%;
+  }
+
+  .piece{
+    width:24px; height:224px;
+    position:relative;
+    margin-bottom:36px;
+    transition:height 4.5s cubic-bezier(.45,0,.4,1), margin-bottom 4.5s cubic-bezier(.45,0,.4,1);
+  }
+  .piece .body{ position:absolute; left:0; right:0; top:22px; bottom:0; border-radius:2px 2px 1px 1px; }
+  .piece .tipcap{
+    position:absolute; left:0; right:0; top:0; height:11px; border-radius:2px 2px 0 0;
+    background:#332f2c; transition:background 0.5s ease, box-shadow 0.5s ease;
+  }
+  .piece .band{ position:absolute; left:-5px; right:-5px; top:60px; height:9px; }
+  .piece .filter{ position:absolute; left:0; right:0; bottom:0; top:69px; border-radius:0 0 2px 2px; }
+
+  .t-ember .body{ background:linear-gradient(90deg,#141210,#1c1a17,#141210); }
+  .t-ember .band{ background:linear-gradient(180deg,#8a8478,#5a564c); }
+  .t-ember .filter{ background:linear-gradient(90deg,#b8ac93,#d3c7ab,#b8ac93); }
+  .t-gold .body{ background:linear-gradient(90deg,#0c0b0a,#242220,#0c0b0a); }
+  .t-gold .band{ background:linear-gradient(180deg,var(--gold-bright),var(--gold-deep)); }
+  .t-gold .filter{ background:linear-gradient(90deg,#d8c9a8,var(--cream),#c9bb9e); }
+  .t-plat .body{ background:linear-gradient(90deg,#0a0a0b,#26282c,#0a0a0b); }
+  .t-plat .band{ background:linear-gradient(180deg,#f2f4f6,#b9c1c8); }
+  .t-plat .filter{ background:linear-gradient(90deg,#e7e2da,#faf7f0,#e7e2da); }
+  .t-founder .body{ background:linear-gradient(90deg,#100a04,#2c1c0c,#100a04); }
+  .t-founder .band{ background:linear-gradient(180deg,var(--gold-bright),var(--gold)); }
+  .t-founder .filter{ background:linear-gradient(90deg,#e0cfa8,#f4e6c4,#e0cfa8); }
+
+  .piece.lit .tipcap{
+    background:linear-gradient(180deg,var(--ember-core), var(--ember) 55%, #7a2c0c);
+    box-shadow:0 0 15px 4px rgba(255,130,50,0.55), 0 0 36px 15px rgba(255,120,40,0.22);
+    animation:emberflicker 1.7s ease-in-out infinite;
+  }
+  @keyframes emberflicker{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.22); } }
+
+  /* burning down: the piece shrinks from the TOP toward the fixed bottom,
+     since the stage is bottom-anchored (align-items:flex-end) — this is
+     what makes it read as the lit end receding, not the whole thing
+     shrinking from the middle */
+  .piece.burning{ height:0; margin-bottom:36px; }
+
+  .flame{
+    position:absolute; left:50%; bottom:0;
+    width:14px; height:22px;
+    transform:translateX(-50%) scale(0.15);
+    opacity:0;
+    pointer-events:none;
+  }
+  .flame.active{ animation:flameburst 0.9s cubic-bezier(.22,1,.36,1) forwards; }
+  @keyframes flameburst{
+    0%{ opacity:0; transform:translateX(-50%) scale(0.15) translateY(4px); }
+    30%{ opacity:1; transform:translateX(-50%) scale(1.1) translateY(-3px); }
+    65%{ opacity:1; transform:translateX(-50%) scale(0.85) translateY(0); }
+    100%{ opacity:0; transform:translateX(-50%) scale(0.4) translateY(-6px); }
+  }
+  .flame::before{
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse at 50% 72%, var(--ember-core) 0%, var(--ember) 55%, transparent 76%);
+    border-radius:50% 50% 50% 50% / 62% 62% 38% 38%;
+  }
+
+  .ash-mark{
+    width:64px; height:9px; margin:0 auto 8px;
+    background:radial-gradient(ellipse, rgba(100,94,82,0.45), transparent 72%);
+    border-radius:50%;
+    opacity:0; transition:opacity 1.2s ease 3.6s;
+  }
+  .ash-mark.show{ opacity:1; }
+
+  h1{ font-family:'Cormorant Garamond',serif; font-weight:400; font-size:27px; margin:0 0 6px; letter-spacing:0.01em; }
+  .tier-name{ font-size:10.5px; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-faint); margin-bottom:34px; }
+
+  .light-btn{
+    width:100%; padding:16px 0; border-radius:3px;
+    border:1px solid var(--gold); background:var(--gold); color:#17130c;
+    font-family:'Inter',sans-serif; font-size:12px; letter-spacing:0.12em; text-transform:uppercase;
+    font-weight:600; cursor:pointer;
+    transition:background 0.2s ease, opacity 0.4s ease, transform 0.15s ease;
+  }
+  .light-btn:hover{ background:var(--gold-bright); transform:translateY(-1px); }
+  .light-btn:active{ transform:translateY(0); }
+  .light-btn:disabled{ opacity:0.45; cursor:default; transform:none; }
+  .light-btn.hidden{ display:none; }
+
+  .gone-message{
+    font-size:14px; line-height:1.85; color:var(--text-dim); margin-bottom:30px;
+  }
+  .gone-message .date{ color:var(--text-faint); font-size:11.5px; display:block; margin-top:8px; letter-spacing:0.02em; }
+
+  .buy-again{
+    display:inline-block; padding:14px 32px; border-radius:3px;
+    border:1px solid var(--gold); color:var(--gold); text-decoration:none;
+    font-size:11.5px; letter-spacing:0.12em; text-transform:uppercase;
+    transition:background 0.25s ease, color 0.25s ease;
+  }
+  .buy-again:hover{ background:var(--gold); color:#17130c; }
+
+  .footlinks{ margin-top:32px; font-size:10.5px; }
+  .footlinks a{ color:var(--text-faint); text-decoration:none; border-bottom:1px solid currentColor; }
+
+  .smoking-note{
+    font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--text-faint); margin-top:20px; min-height:16px;
+    opacity:0; transition:opacity 0.6s ease;
+  }
+  .smoking-note.show{ opacity:1; }
+
+  .sound-hint{
+    font-size:10px; color:var(--text-faint); margin-top:14px; opacity:0.7;
+  }
+</style>
+</head>
+<body>
+<canvas id="ambient-canvas"></canvas>
+
+<div class="wrap">
+  <div class="brand">Maison&nbsp;Noir</div>
+  <div class="brand-rule"></div>
+
+  <div class="state show" id="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="state" id="errorState">
+    <p style="color:var(--text-dim); font-size:14px; line-height:1.7; margin-top:40px;">Couldn't find that piece. If you followed a link from your certificate, make sure it copied correctly — or verify your certificate directly.</p>
+    <p class="footlinks"><a href="verify.html">Verify a certificate instead</a></p>
+  </div>
+
+  <div class="state" id="unlit">
+    <div class="stage">
+      <canvas id="smoke-canvas"></canvas>
+      <div class="plinth"></div>
+      <div class="flame" id="flame"></div>
+      <div class="piece" id="piece">
+        <div class="tipcap"></div>
+        <div class="band"></div>
+        <div class="filter"></div>
+        <div class="body"></div>
+      </div>
+    </div>
+    <div class="ash-mark" id="ashMark"></div>
+    <h1 id="tierTitle"></h1>
+    <div class="tier-name" id="editionLabel"></div>
+    <button class="light-btn" id="lightBtn">Light this instead</button>
+    <div class="smoking-note" id="smokingNote"></div>
+    <div class="footlinks"><a href="verify.html">Verify this certificate</a></div>
+  </div>
+
+  <div class="state" id="goneState">
+    <h1>This piece is gone.</h1>
+    <div class="tier-name" id="goneTierLabel"></div>
+    <p class="gone-message">
+      Like the real thing, it only burns once.
+      <span class="date" id="smokedDate"></span>
+    </p>
+    <a class="buy-again" href="mint.html">Light another</a>
+    <div class="footlinks"><a href="verify.html">Verify this certificate</a></div>
+  </div>
+</div>
+
+<script>
+  function showState(id){
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('show'));
+    // reflow so the fade-in transition actually plays rather than being skipped
+    void document.body.offsetHeight;
+    document.getElementById(id).classList.add('show');
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const certId = params.get('cert');
+
+  const tierClassMap = {
+    'Ember': 't-ember',
+    'Gold Band': 't-gold',
+    'Platinum': 't-plat',
+    "Founder's Cut": 't-founder',
+  };
+
+  function formatDate(iso){
+    if(!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { year:'numeric', month:'long', day:'numeric' });
+  }
+
+  function renderGone(cert, status){
+    const editionText = cert.edition_total ? `Edition ${cert.edition} of ${cert.edition_total}` : `Edition #${cert.edition}`;
+    document.getElementById('goneTierLabel').textContent = `${cert.tier} — ${editionText}`;
+    document.getElementById('smokedDate').textContent = 'Smoked on ' + formatDate(status.smokedAt);
+    showState('goneState');
+  }
+
+  function renderUnlit(cert){
+    document.getElementById('piece').className = 'piece ' + (tierClassMap[cert.tier] || 't-gold');
+    document.getElementById('tierTitle').textContent = cert.tier;
+    document.getElementById('editionLabel').textContent = cert.edition_total ? `Edition ${cert.edition} of ${cert.edition_total}` : `Edition #${cert.edition}`;
+    showState('unlit');
+    resizeSmokeCanvas();
+  }
+
+  async function load(){
+    if (!certId) { showState('errorState'); return; }
+    try {
+      const res = await fetch(`/api/get-ritual?cert=${encodeURIComponent(certId)}`);
+      if (!res.ok) { showState('errorState'); return; }
+      const data = await res.json();
+      if (data.status.smoked) {
+        renderGone(data.certificate, data.status);
+      } else {
+        renderUnlit(data.certificate);
+      }
+    } catch (e) {
+      showState('errorState');
+    }
+  }
+
+  /* ================= ambient background embers (always drifting, subtle) ================= */
+  const ambientCanvas = document.getElementById('ambient-canvas');
+  const actx = ambientCanvas.getContext('2d');
+  let ambientParticles = [];
+  function resizeAmbient(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    ambientCanvas.width = window.innerWidth * dpr;
+    ambientCanvas.height = window.innerHeight * dpr;
+    ambientCanvas.style.width = window.innerWidth + 'px';
+    ambientCanvas.style.height = window.innerHeight + 'px';
+    actx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resizeAmbient);
+  resizeAmbient();
+  function spawnAmbient(){
+    ambientParticles.push({
+      x: Math.random()*window.innerWidth,
+      y: window.innerHeight + 10,
+      r: 0.8 + Math.random()*1.4,
+      vy: -(0.08 + Math.random()*0.14),
+      life:0, maxLife: 600 + Math.random()*400,
+      wobble: Math.random()*Math.PI*2,
+    });
+  }
+  function ambientLoop(){
+    actx.clearRect(0,0,window.innerWidth,window.innerHeight);
+    if (ambientParticles.length < 26 && Math.random() < 0.4) spawnAmbient();
+    ambientParticles.forEach(p=>{
+      p.life++; p.wobble += 0.008;
+      p.y += p.vy; p.x += Math.sin(p.wobble)*0.15;
+      const t = p.life/p.maxLife;
+      const a = Math.sin(t*Math.PI) * 0.35;
+      actx.fillStyle = `rgba(201,169,97,${a})`;
+      actx.beginPath(); actx.arc(p.x,p.y,p.r,0,Math.PI*2); actx.fill();
+    });
+    ambientParticles = ambientParticles.filter(p=>p.life<p.maxLife);
+    requestAnimationFrame(ambientLoop);
+  }
+  ambientLoop();
+
+  /* ================= smoke particles from the tip ================= */
+  const canvas = document.getElementById('smoke-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let smokeActive = false;
+  let smokeAnimId = null;
+
+  function resizeSmokeCanvas(){
+    const stage = document.querySelector('#unlit .stage');
+    if (!stage) return;
+    const r = stage.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = r.width * dpr;
+    canvas.height = r.height * dpr;
+    canvas.style.width = r.width + 'px';
+    canvas.style.height = r.height + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resizeSmokeCanvas);
+
+  function getTipPos(){
+    const piece = document.getElementById('piece');
+    const stage = document.querySelector('#unlit .stage');
+    const pieceRect = piece.getBoundingClientRect();
+    const stageRect = stage.getBoundingClientRect();
+    return {
+      x: pieceRect.left - stageRect.left + pieceRect.width/2,
+      y: pieceRect.top - stageRect.top + 2
+    };
+  }
+
+  function spawnSmoke(intensity){
+    const p = getTipPos();
+    particles.push({
+      x: p.x + (Math.random()-0.5)*2,
+      y: p.y,
+      vx: (Math.random()-0.5)*0.16,
+      vy: -(0.26 + Math.random()*0.22) * intensity,
+      r: 1.7 + Math.random()*1.7,
+      life: 0,
+      maxLife: 320 + Math.random()*160,
+      wobble: Math.random()*Math.PI*2,
+      wobbleSpeed: 0.009 + Math.random()*0.013,
+      alpha: 0.38
+    });
+  }
+
+  function smokeLoop(){
+    const stage = document.querySelector('#unlit .stage');
+    if (!stage) { smokeAnimId = null; return; }
+    const r = stage.getBoundingClientRect();
+    ctx.clearRect(0,0,r.width,r.height);
+
+    if (smokeActive && Math.random() < 0.65) spawnSmoke(1);
+
+    particles.forEach(p=>{
+      p.life++;
+      p.wobble += p.wobbleSpeed;
+      p.x += p.vx + Math.sin(p.wobble)*0.22;
+      p.y += p.vy;
+      p.r += 0.045;
+      const t = p.life / p.maxLife;
+      const a = p.alpha * (1 - t) * (t < 0.08 ? t/0.08 : 1);
+      const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*2.2);
+      grad.addColorStop(0, `rgba(226,220,208,${a})`);
+      grad.addColorStop(1, 'rgba(226,220,208,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r*2.2,0,Math.PI*2);
+      ctx.fill();
+    });
+    particles = particles.filter(p => p.life < p.maxLife);
+
+    if (smokeActive || particles.length > 0) {
+      smokeAnimId = requestAnimationFrame(smokeLoop);
+    } else {
+      smokeAnimId = null;
+    }
+  }
+
+  /* ================= synthesized sound (no external audio files) ================= */
+  let audioCtx = null;
+  function ensureAudio(){
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function makeNoiseBuffer(ctx, seconds){
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    return buffer;
+  }
+
+  function playFlick(){
+    const ctx = ensureAudio();
+    const buf = makeNoiseBuffer(ctx, 0.12);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.value = 2600;
+    bandpass.Q.value = 2.2;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.13);
+    src.connect(bandpass); bandpass.connect(gain); gain.connect(ctx.destination);
+    src.start();
+    src.stop(ctx.currentTime + 0.14);
+  }
+
+  function playCatch(){
+    const ctx = ensureAudio();
+    const buf = makeNoiseBuffer(ctx, 0.5);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.setValueAtTime(300, ctx.currentTime);
+    lowpass.frequency.exponentialRampToValueAtTime(1400, ctx.currentTime + 0.35);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+    src.connect(lowpass); lowpass.connect(gain); gain.connect(ctx.destination);
+    src.start();
+    src.stop(ctx.currentTime + 0.5);
+  }
+
+  let hissNodes = null;
+  function startHiss(){
+    const ctx = ensureAudio();
+    const buf = makeNoiseBuffer(ctx, 2);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const lowpass = ctx.createBiquadFilter();
+    lowpass.type = 'lowpass';
+    lowpass.frequency.value = 900;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.028, ctx.currentTime + 1.2);
+
+    // slow organic "breathing" modulation on the gain
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 0.12;
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = 0.008;
+    lfo.connect(lfoGain); lfoGain.connect(gain.gain);
+    lfo.start();
+
+    src.connect(lowpass); lowpass.connect(gain); gain.connect(ctx.destination);
+    src.start();
+    hissNodes = { src, gain, lfo };
+  }
+  function stopHiss(){
+    if (!hissNodes) return;
+    const ctx = ensureAudio();
+    hissNodes.gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
+    const nodes = hissNodes;
+    hissNodes = null;
+    setTimeout(() => {
+      try { nodes.src.stop(); nodes.lfo.stop(); } catch(e){}
+    }, 1300);
+  }
+
+  /* ================= the actual lighting ritual ================= */
+  function flameFlourish(){
+    return new Promise(resolve => {
+      playFlick();
+      const flame = document.getElementById('flame');
+      flame.classList.add('active');
+      setTimeout(() => {
+        playCatch();
+        resolve();
+      }, 650);
+    });
+  }
+
+  document.getElementById('lightBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('lightBtn');
+    btn.disabled = true;
+    btn.textContent = 'Lighting…';
+    ensureAudio();
+
+    const consumePromise = fetch('/api/log-light', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cert: certId })
+    }).then(r => r.json());
+
+    let result;
+    try {
+      [result] = await Promise.all([consumePromise, flameFlourish()]);
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = 'Light this instead';
+      document.getElementById('smokingNote').textContent = 'Something went wrong — please try again.';
+      document.getElementById('smokingNote').classList.add('show');
+      return;
+    }
+
+    const piece = document.getElementById('piece');
+    piece.classList.add('lit');
+    btn.classList.add('hidden');
+    smokeActive = true;
+    if (!smokeAnimId) smokeLoop();
+    startHiss();
+
+    const note = document.getElementById('smokingNote');
+    note.textContent = 'Burning slowly…';
+    note.classList.add('show');
+
+    // A longer, unhurried smoking phase — this is the one moment of the
+    // whole product, so it earns real time rather than feeling rushed.
+    setTimeout(() => {
+      smokeActive = false;
+      stopHiss();
+      note.classList.remove('show');
+      piece.classList.add('burning');
+      document.getElementById('ashMark').classList.add('show');
+    }, 8000);
+
+    setTimeout(async () => {
+      const finalRes = await fetch(`/api/get-ritual?cert=${encodeURIComponent(certId)}`);
+      const data = await finalRes.json();
+      renderGone(data.certificate, data.status);
+    }, 13200);
+  });
+
+  load();
+</script>
+</body>
+</html>
