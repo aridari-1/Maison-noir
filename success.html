@@ -298,7 +298,6 @@
     document.getElementById('errorText').textContent = 'No checkout session found. If you just completed a purchase, check your email for a confirmation link.';
     showState('errorState');
   } else {
-    const maxAttempts = 20;
 
     async function fetchCert(attemptNum){
       debugLog(`Fetching certificate (attempt ${attemptNum})...`);
@@ -315,15 +314,17 @@
       throw new Error(`Unexpected response: ${res.status}`);
     }
 
-    const tierClassMap = {
-      'Ember': 't-ember',
-      'Gold Band': 't-gold',
-      'Platinum': 't-plat',
-      "Founder's Cut": 't-founder',
-    };
-
     function renderCert(cert){
       debugLog('Rendering certificate...');
+      // Declared right here, inside the function that uses it — not in an
+      // enclosing scope — so there's no cross-scope dependency that could
+      // ever go missing, same class of fix as the earlier "attempts" bug.
+      const tierClassMap = {
+        'Ember': 't-ember',
+        'Gold Band': 't-gold',
+        'Platinum': 't-plat',
+        "Founder's Cut": 't-founder',
+      };
       document.getElementById('heroRender').className = 'hero-render ' + (tierClassMap[cert.tier] || 't-gold');
       document.getElementById('cTier').textContent = cert.tier;
       document.getElementById('cEdition').textContent = cert.edition_total ? `${cert.edition} of ${cert.edition_total}` : `#${cert.edition}`;
@@ -373,7 +374,7 @@
         return;
       }
 
-      if (attemptNum >= maxAttempts) {
+      if (attemptNum >= 20) {
         debugLog('Max attempts reached.');
         showStuckWithLog();
         return;
