@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maison Noir About</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="favicon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Maison Noir — About">
+<meta property="og:description" content="Why we built a ritual instead of a product, and what this is not.">
+<meta property="og:image" content="https://maison-noir-two-chi.vercel.app/og-image.jpg">
+<meta property="og:url" content="https://maison-noir-two-chi.vercel.app/about.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Maison Noir — About">
+<meta name="twitter:description" content="Why we built a ritual instead of a product, and what this is not.">
+<meta name="twitter:image" content="https://maison-noir-two-chi.vercel.app/og-image.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050403;
+    --gold:#c9a961;
+    --gold-bright:#f2e2b3;
+    --gold-deep:#7d6132;
+    --ember:#ff7a2e;
+    --ember-core:#ffe1a8;
+    --cream:#ece2ce;
+    --text:#efe8da;
+    --text-dim:#9a9182;
+    --text-faint:#5c5445;
+    --card-bg:#0d0b09;
+    --card-border:#221c14;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html{ background:var(--bg); scroll-behavior:smooth; }
+  body{
+    background:radial-gradient(ellipse at 50% 0%, #14100c 0%, #0a0908 45%, #050403 100%);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } }
+  ::selection{ background:var(--gold); color:#0a0806; }
+
+  #ambient-canvas{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; opacity:0.4; z-index:0; }
+
+  /* ---------- nav (same component as the rest of the site) ---------- */
+  .site-nav{
+    position:fixed; top:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 40px;
+    z-index:200;
+    background:rgba(8,7,6,0.6);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .site-nav .brand-link{
+    font-family:'Cormorant Garamond',serif;
+    font-size:15px; letter-spacing:0.38em; text-indent:0.38em;
+    color:var(--text); text-decoration:none; white-space:nowrap;
+  }
+  .site-nav .nav-links{ display:flex; align-items:center; gap:30px; list-style:none; }
+  .site-nav .nav-links a{
+    font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--text-dim); text-decoration:none;
+    padding-bottom:3px; border-bottom:1px solid transparent;
+    transition:color 0.2s ease, border-color 0.2s ease;
+    white-space:nowrap;
+  }
+  .site-nav .nav-links a:hover, .site-nav .nav-links a.active{ color:var(--gold); border-color:var(--gold); }
+  .menu-toggle{ display:none; background:none; border:none; cursor:pointer; padding:8px; margin:-8px; }
+  .menu-toggle span{ display:block; width:20px; height:1px; background:var(--text); margin:5px 0; transition:transform 0.25s ease, opacity 0.2s ease; }
+  .menu-toggle.open span:nth-child(1){ transform:translateY(6px) rotate(45deg); }
+  .menu-toggle.open span:nth-child(2){ opacity:0; }
+  .menu-toggle.open span:nth-child(3){ transform:translateY(-6px) rotate(-45deg); }
+  .mobile-menu{
+    position:fixed; inset:0; background:rgba(5,4,3,0.98);
+    backdrop-filter:blur(8px); z-index:190;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;
+    opacity:0; pointer-events:none; transition:opacity 0.35s ease;
+  }
+  .mobile-menu.open{ opacity:1; pointer-events:auto; }
+  .mobile-menu a{ font-family:'Cormorant Garamond',serif; font-size:26px; color:var(--text); text-decoration:none; }
+  .mobile-menu a:hover, .mobile-menu a.active{ color:var(--gold); }
+  @media (max-width:760px){
+    .site-nav{ padding:18px 22px; }
+    .site-nav .nav-links{ display:none; }
+    .menu-toggle{ display:block; }
+    .site-nav .brand-link{ font-size:13px; letter-spacing:0.3em; text-indent:0.3em; }
+  }
+
+  /* ---------- page ---------- */
+  main{ position:relative; z-index:1; }
+  .intro{
+    max-width:720px; margin:0 auto;
+    padding:170px 32px 80px;
+    text-align:center;
+  }
+  .intro .eyebrow{
+    font-size:11px; letter-spacing:0.3em; text-transform:uppercase;
+    color:var(--text-faint); margin-bottom:22px;
+  }
+  .intro h1{
+    font-family:'Cormorant Garamond',serif; font-weight:400;
+    font-size:clamp(34px,5.5vw,54px); line-height:1.2; margin-bottom:24px;
+  }
+  .intro h1 em{ font-style:italic; color:var(--gold-bright); }
+  .intro p{ font-size:16px; line-height:1.85; color:var(--text-dim); }
+
+  section.block{
+    max-width:680px; margin:0 auto;
+    padding:70px 32px;
+    border-top:1px solid var(--card-border);
+  }
+  section.block .eyebrow{
+    font-size:11px; letter-spacing:0.25em; text-transform:uppercase;
+    color:var(--text-faint); margin-bottom:18px;
+  }
+  section.block h2{
+    font-family:'Cormorant Garamond',serif; font-weight:400;
+    font-size:clamp(24px,3.4vw,32px); margin-bottom:20px;
+  }
+  section.block p{
+    font-size:15px; line-height:1.9; color:var(--text-dim); margin-bottom:16px;
+  }
+  section.block p:last-child{ margin-bottom:0; }
+  section.block strong{ color:var(--text); font-weight:600; }
+  section.block em{ color:var(--gold-bright); font-style:italic; }
+
+  .not-list{
+    list-style:none; margin-top:8px;
+  }
+  .not-list li{
+    display:flex; gap:14px; padding:14px 0;
+    border-bottom:1px solid rgba(255,255,255,0.04);
+    font-size:14.5px; line-height:1.7; color:var(--text-dim);
+  }
+  .not-list li:last-child{ border-bottom:none; }
+  .not-list .mark{
+    flex:0 0 auto; color:var(--gold); font-family:'Cormorant Garamond',serif;
+    font-size:18px; line-height:1.4;
+  }
+
+  .cta-row{
+    display:flex; gap:14px; flex-wrap:wrap; margin-top:28px;
+  }
+  .cta-row a{
+    display:inline-block; padding:13px 26px; border-radius:3px;
+    font-size:11.5px; letter-spacing:0.1em; text-transform:uppercase;
+    text-decoration:none; transition:background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .cta-primary{ background:var(--gold); color:#17130c; border:1px solid var(--gold); }
+  .cta-primary:hover{ background:var(--gold-bright); }
+  .cta-secondary{ background:transparent; color:var(--gold); border:1px solid rgba(201,169,97,0.4); }
+  .cta-secondary:hover{ border-color:var(--gold); }
+
+  footer{
+    border-top:1px solid var(--card-border);
+    padding:36px 44px;
+    display:flex; justify-content:space-between; align-items:center;
+    flex-wrap:wrap; gap:8px;
+    font-size:10.5px; letter-spacing:0.05em; color:var(--text-faint);
+    position:relative; z-index:1;
+  }
+  footer a{ color:inherit; text-decoration:none; border-bottom:1px solid currentColor; }
+
+  @media (max-width:600px){
+    .intro{ padding:130px 22px 60px; }
+    section.block{ padding:52px 22px; }
+    footer{ padding:28px 22px; font-size:9.5px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="ambient-canvas"></canvas>
+
+<nav class="site-nav">
+  <a class="brand-link" href="index.html">Maison&nbsp;Noir</a>
+  <ul class="nav-links">
+    <li><a href="about.html" data-page="about.html" class="active">About</a></li>
+    <li><a href="index.html#demo" data-page="demo">Try It</a></li>
+    <li><a href="mint.html" data-page="mint.html">Collection</a></li>
+    <li><a href="verify.html" data-page="verify.html">Verify</a></li>
+  </ul>
+  <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" data-page="index.html">Home</a>
+  <a href="about.html" data-page="about.html" class="active">About</a>
+  <a href="index.html#demo" data-page="demo">Try It</a>
+  <a href="mint.html" data-page="mint.html">Collection</a>
+  <a href="verify.html" data-page="verify.html">Verify</a>
+</div>
+
+<main>
+  <div class="intro">
+    <div class="eyebrow">About Maison Noir</div>
+    <h1>A ritual, dressed as <em>an object.</em></h1>
+    <p>Maison Noir started from a simple observation: most quitting tools ask you to track, log, and quantify your way out of a habit. We wanted something that felt like part of the habit itself  something you reach for, the way you'd reach for the real thing.</p>
+  </div>
+
+  <section class="block">
+    <div class="eyebrow">The Idea</div>
+    <h2>Light this instead.</h2>
+    <p>Every piece in the collection is a signed digital object a case, a piece, a moment. When you'd normally reach for a cigarette, you open it instead. You light it. It smokes, briefly, the way the real thing would. Then it's gone, permanently, the same way a real cigarette is gone once it's smoked.</p>
+    <p>To do it again, you choose another piece. That's not a limitation it's the whole point. <strong>The friction of choosing again is the ritual.</strong> It gives you a beat to actually decide, rather than reaching on autopilot.</p>
+  </section>
+
+  <section class="block">
+    <div class="eyebrow">Signed, Not Speculative</div>
+    <h2>Why this isn't an NFT.</h2>
+    <p>Early on, this looked like it might become an NFT collection. We moved away from that on purpose. An NFT implies a market resale, speculation, value going up or down. None of that belongs here.</p>
+    <p>Instead, each piece is a plain digital object with a cryptographic signature attached the same category of technology banks and governments use to prove a document is authentic, adapted into something anyone can verify in their browser, instantly, without a blockchain, a wallet, or a gas fee. <em>You can check any certificate's authenticity yourself, right now, on the verify page.</em></p>
+  </section>
+
+  <section class="block">
+    <div class="eyebrow">Honesty About Limits</div>
+    <h2>What this is not.</h2>
+    <ul class="not-list">
+      <li><span class="mark">—</span><span>Not a medical device, a cessation program, or a substitute for professional treatment. If you're trying to quit smoking, a doctor or a licensed program can offer things we can't: nicotine replacement guidance, medication, structured support.</span></li>
+      <li><span class="mark">—</span><span>Not a tracker with any verification behind it. Nothing here can confirm whether you actually skipped a real cigarette. That honesty is intentional this is a commitment ritual, not a surveillance tool.</span></li>
+      <li><span class="mark">—</span><span>Not an investment. Prices are fixed per tier, supply is unlimited by design, and nothing about owning a piece is meant to appreciate in value.</span></li>
+      <li><span class="mark">—</span><span>Not a guarantee of any outcome. Some people find a ritual like this genuinely useful for building awareness around a habit. Others won't. We'd rather say that plainly than oversell it.</span></li>
+    </ul>
+  </section>
+
+  <section class="block">
+    <div class="eyebrow">On Availability</div>
+    <h2>No scarcity, on purpose.</h2>
+    <p>You'll notice there's no countdown, no "only 12 left," no urgency. Every tier is available without limit. If this is genuinely useful to you as a daily ritual, you shouldn't be turned away by a cap someone set for marketing reasons. The four tiers exist for taste and craftsmanship, not exclusivity.</p>
+  </section>
+
+  <section class="block">
+    <div class="eyebrow">Begin</div>
+    <h2>Try it before you choose anything.</h2>
+    <p>The full ritual  opening the case, choosing a piece, lighting it, watching it burn down is free to try on the homepage, no purchase required. It's exactly what you'd experience with a real piece, minus the certificate.</p>
+    <div class="cta-row">
+      <a class="cta-primary" href="index.html#demo">Try the ritual</a>
+      <a class="cta-secondary" href="mint.html">See the collection</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div>© Maison Noir</div>
+  <div style="display:flex; gap:18px;">
+    <a href="index.html#demo">Try the ritual</a>
+    <a href="mint.html">Pricing</a>
+    <a href="verify.html">Verify</a>
+  </div>
+  <div>Not a medical device. Not investment advice.</div>
+</footer>
+
+<script>
+  /* ambient background embers — same system as the rest of the site */
+  const ambientCanvas = document.getElementById('ambient-canvas');
+  const actx = ambientCanvas.getContext('2d');
+  let ambientParticles = [];
+  function resizeAmbient(){
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    ambientCanvas.width = window.innerWidth * dpr;
+    ambientCanvas.height = window.innerHeight * dpr;
+    ambientCanvas.style.width = window.innerWidth + 'px';
+    ambientCanvas.style.height = window.innerHeight + 'px';
+    actx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resizeAmbient);
+  resizeAmbient();
+  function spawnAmbient(){
+    ambientParticles.push({
+      x: Math.random()*window.innerWidth,
+      y: window.innerHeight + 10,
+      r: 0.8 + Math.random()*1.4,
+      vy: -(0.08 + Math.random()*0.14),
+      life:0, maxLife: 600 + Math.random()*400,
+      wobble: Math.random()*Math.PI*2,
+    });
+  }
+  const maxAmbient = window.innerWidth < 600 ? 14 : 26;
+  function ambientLoop(){
+    actx.clearRect(0,0,window.innerWidth,window.innerHeight);
+    if (ambientParticles.length < maxAmbient && Math.random() < 0.4) spawnAmbient();
+    ambientParticles.forEach(p=>{
+      p.life++; p.wobble += 0.008;
+      p.y += p.vy; p.x += Math.sin(p.wobble)*0.15;
+      const t = p.life/p.maxLife;
+      const a = Math.sin(t*Math.PI) * 0.3;
+      actx.fillStyle = `rgba(201,169,97,${a})`;
+      actx.beginPath(); actx.arc(p.x,p.y,p.r,0,Math.PI*2); actx.fill();
+    });
+    ambientParticles = ambientParticles.filter(p=>p.life<p.maxLife);
+    requestAnimationFrame(ambientLoop);
+  }
+  ambientLoop();
+
+  /* mobile nav menu */
+  const menuToggle = document.getElementById('menuToggle');
+  const mobileMenu = document.getElementById('mobileMenu');
+  menuToggle.addEventListener('click', () => {
+    const isOpen = mobileMenu.classList.toggle('open');
+    menuToggle.classList.toggle('open', isOpen);
+    menuToggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  });
+  mobileMenu.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      mobileMenu.classList.remove('open');
+      menuToggle.classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  });
+</script>
+</body>
+</html>

@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Maison Noir</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="favicon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Maison Noir  Light what you mean to quit">
+<meta property="og:description" content="A signed, one-time ritual piece. Not a habit you hide.">
+<meta property="og:image" content="https://maison-noir-two-chi.vercel.app/og-image.jpg">
+<meta property="og:url" content="https://maison-noir-two-chi.vercel.app/index.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Maison Noir  Light what you mean to quit">
+<meta name="twitter:description" content="A signed, one-time ritual piece. Not a habit you hide.">
+<meta name="twitter:image" content="https://maison-noir-two-chi.vercel.app/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -82,34 +94,78 @@
   section{ position:relative; z-index:1; }
 
   /* ---------- nav ---------- */
-  nav{
+  .site-nav{
     position:fixed; top:0; left:0; right:0;
     display:flex; align-items:center; justify-content:space-between;
-    padding:26px 44px;
-    z-index:100;
-    mix-blend-mode:difference;
+    padding:20px 40px;
+    z-index:200;
+    background:rgba(8,7,6,0.6);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,0.05);
   }
-  .nav-mark{
+  .site-nav .brand-link{
     font-family:'Cormorant Garamond',serif;
     font-size:15px;
     letter-spacing:0.38em;
     text-indent:0.38em;
     color:var(--text);
+    text-decoration:none;
+    white-space:nowrap;
   }
-  .nav-link{
+  .site-nav .nav-links{
+    display:flex; align-items:center; gap:30px;
+    list-style:none;
+  }
+  .site-nav .nav-links a{
     font-size:11px;
     letter-spacing:0.12em;
     text-transform:uppercase;
-    color:var(--text);
+    color:var(--text-dim);
     text-decoration:none;
-    border-bottom:1px solid currentColor;
-    padding-bottom:2px;
+    padding-bottom:3px;
+    border-bottom:1px solid transparent;
+    transition:color 0.2s ease, border-color 0.2s ease;
     white-space:nowrap;
   }
-  @media (max-width:600px){
-    nav{ padding:20px 22px; }
-    .nav-mark{ font-size:12px; letter-spacing:0.28em; text-indent:0.28em; }
-    .nav-link{ font-size:9.5px; }
+  .site-nav .nav-links a:hover, .site-nav .nav-links a.active{
+    color:var(--gold); border-color:var(--gold);
+  }
+  .menu-toggle{
+    display:none; background:none; border:none; cursor:pointer;
+    padding:8px; margin:-8px;
+  }
+  .menu-toggle span{
+    display:block; width:20px; height:1px; background:var(--text);
+    margin:5px 0; transition:transform 0.25s ease, opacity 0.2s ease;
+  }
+  .menu-toggle.open span:nth-child(1){ transform:translateY(6px) rotate(45deg); }
+  .menu-toggle.open span:nth-child(2){ opacity:0; }
+  .menu-toggle.open span:nth-child(3){ transform:translateY(-6px) rotate(-45deg); }
+
+  .mobile-menu{
+    position:fixed; inset:0;
+    background:rgba(5,4,3,0.98);
+    backdrop-filter:blur(8px);
+    z-index:190;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;
+    opacity:0; pointer-events:none;
+    transition:opacity 0.35s ease;
+  }
+  .mobile-menu.open{ opacity:1; pointer-events:auto; }
+  .mobile-menu a{
+    font-family:'Cormorant Garamond',serif;
+    font-size:26px;
+    color:var(--text);
+    text-decoration:none;
+  }
+  .mobile-menu a:hover, .mobile-menu a.active{ color:var(--gold); }
+
+  @media (max-width:760px){
+    .site-nav{ padding:18px 22px; }
+    .site-nav .nav-links{ display:none; }
+    .menu-toggle{ display:block; }
+    .site-nav .brand-link{ font-size:13px; letter-spacing:0.3em; text-indent:0.3em; }
   }
 
   /* ---------- hero ---------- */
@@ -556,10 +612,26 @@
 <div class="cursor" id="cursor"></div>
 <canvas id="ember-canvas"></canvas>
 
-<nav>
-  <div class="nav-mark">Maison&nbsp;Noir</div>
-  <a class="nav-link" href="#verify">Verify a piece</a>
+<nav class="site-nav">
+  <a class="brand-link" href="index.html">Maison&nbsp;Noir</a>
+  <ul class="nav-links">
+    <li><a href="about.html" data-page="about.html">About</a></li>
+    <li><a href="index.html#demo" data-page="demo">Try It</a></li>
+    <li><a href="mint.html" data-page="mint.html">Collection</a></li>
+    <li><a href="verify.html" data-page="verify.html">Verify</a></li>
+  </ul>
+  <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
 </nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" data-page="index.html">Home</a>
+  <a href="about.html" data-page="about.html">About</a>
+  <a href="index.html#demo" data-page="demo">Try It</a>
+  <a href="mint.html" data-page="mint.html">Collection</a>
+  <a href="verify.html" data-page="verify.html">Verify</a>
+</div>
 
 <section class="hero">
   <div class="hero-eyebrow"><span id="eyebrowText">A COMMITMENT, NOT A HABIT</span></div>
@@ -567,7 +639,7 @@
     <div class="line"><span>LIGHT WHAT</span></div>
     <div class="line"><span>YOU MEAN <span class="accent">to quit</span></span></div>
   </h1>
-  <p class="hero-sub" id="heroSub">Each piece is a signed, one-of-an-edition artwork that changes as your real streak grows. No blockchain required — just a ritual, and a certificate no one can forge.</p>
+  <p class="hero-sub" id="heroSub">Each piece is a signed, one-of-an-edition artwork that changes as your real streak grows. No blockchain required  just a ritual, and a certificate no one can forge.</p>
   <div class="scroll-cue"><div class="line"></div><span>Scroll</span></div>
 </section>
 
@@ -625,7 +697,7 @@
   <div class="demo-head">
     <div class="eyebrow">Try It</div>
     <h2>Light one, right here.</h2>
-    <p>No purchase, no account — this is exactly the ritual, free to try before you choose a piece.</p>
+    <p>No purchase, no account  this is exactly the ritual, free to try before you choose a piece.</p>
   </div>
 
   <div class="demo-stage-wrap">
@@ -677,6 +749,7 @@
 <footer>
   <div>© Maison Noir</div>
   <div style="display:flex; gap:18px;">
+    <a href="about.html" style="color:inherit; text-decoration:none; border-bottom:1px solid currentColor;">About</a>
     <a href="#demo" style="color:inherit; text-decoration:none; border-bottom:1px solid currentColor;">Try the ritual</a>
     <a href="mint.html" style="color:inherit; text-decoration:none; border-bottom:1px solid currentColor;">Pricing</a>
   </div>
@@ -695,6 +768,31 @@ tl0.to('#preloaderMark', { opacity:1, duration:0.9, ease:'power2.out' })
    .from('.hero h1 .line span', { yPercent:120, duration:0.9, ease:'power3.out', stagger:0.08 }, '-=0.4')
    .to('#heroSub', { opacity:1, duration:0.8 }, '-=0.4')
    .to('.scroll-cue', { opacity:1, duration:0.6 }, '-=0.3');
+
+/* ---------- mobile nav menu ---------- */
+const menuToggle = document.getElementById('menuToggle');
+const mobileMenu = document.getElementById('mobileMenu');
+menuToggle.addEventListener('click', () => {
+  const isOpen = mobileMenu.classList.toggle('open');
+  menuToggle.classList.toggle('open', isOpen);
+  menuToggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+  document.body.style.overflow = isOpen ? 'hidden' : '';
+});
+mobileMenu.querySelectorAll('a').forEach(a => {
+  a.addEventListener('click', () => {
+    mobileMenu.classList.remove('open');
+    menuToggle.classList.remove('open');
+    document.body.style.overflow = '';
+  });
+});
+
+/* ---------- highlight the current page in nav ---------- */
+(function(){
+  const path = window.location.pathname.split('/').pop() || 'index.html';
+  document.querySelectorAll('.nav-links a[data-page], .mobile-menu a[data-page]').forEach(a => {
+    if (a.dataset.page === path) a.classList.add('active');
+  });
+})();
 
 /* ---------- cursor (desktop / non-touch only) ---------- */
 const isTouch = matchMedia('(hover: none), (pointer: coarse)').matches;
