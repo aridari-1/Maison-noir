@@ -1,6 +1,6 @@
 const Stripe = require('stripe');
 const { kv } = require('../lib/kv');
-const { randomUUID } = require('crypto');
+const { randomUUID, randomInt } = require('crypto');
 const { getRawBody } = require('../lib/rawBody');
 const { signCertificate } = require('../lib/certificate');
 const tiers = require('../lib/tiers');
@@ -82,6 +82,17 @@ async function handler(req, res) {
       issued_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
     };
     cert.signature = signCertificate(cert);
+
+    // Founder's Cut only: assign one of the 50 keepsake artworks at
+    // issuance, permanently — this is randomized ONCE per certificate,
+    // not re-rolled every time the buyer visits a page. Deliberately
+    // added AFTER signing: this is asset metadata, not a claim that
+    // needs cryptographic protection, so it stays outside the signed
+    // message (buildMessage in lib/certificate.js only reads specific
+    // named fields, so adding this here can't affect verification).
+    if (tier.artworkPoolSize) {
+      cert.founderArtwork = randomInt(1, tier.artworkPoolSize + 1); // 1..50 inclusive
+    }
 
     // Keyed three ways:
     //  - by Stripe session id, so success.html can fetch it right after redirect

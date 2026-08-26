@@ -7,7 +7,7 @@ module.exports = async (req, res) => {
       return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { cert } = req.body || {};
+    const { cert, message } = req.body || {};
     if (!cert) {
       return res.status(400).json({ error: 'Missing cert id' });
     }
@@ -19,12 +19,10 @@ module.exports = async (req, res) => {
 
     const existing = await getStatus(cert);
     if (existing.smoked) {
-      // Already lit, permanently. Not an error — just tell the client
-      // the true state so the UI can show the "gone" view either way.
       return res.status(200).json({ status: existing, alreadySmoked: true });
     }
 
-    const status = await consume(cert);
+    const status = await consume(cert, message);
     return res.status(200).json({ status });
   } catch (err) {
     console.error('log-light failed:', err.message, err.stack);

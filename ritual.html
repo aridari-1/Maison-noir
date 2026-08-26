@@ -174,6 +174,70 @@
   }
   .smoking-note.show{ opacity:1; }
 
+  .inscription-field{
+    margin-bottom:22px; text-align:left;
+  }
+  .inscription-field label{
+    display:block; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--text-faint); margin-bottom:8px;
+  }
+  .inscription-field textarea{
+    width:100%; resize:none;
+    background:var(--card-bg); border:1px solid var(--card-border); border-radius:4px;
+    color:var(--text); font-family:'Cormorant Garamond',serif; font-style:italic; font-size:15px;
+    padding:12px 14px; line-height:1.5;
+    transition:border-color 0.2s ease;
+  }
+  .inscription-field textarea:focus{ outline:none; border-color:var(--gold-deep); }
+  .inscription-field .char-count{
+    text-align:right; font-size:10px; color:var(--text-faint); margin-top:4px;
+  }
+
+  .ritual-message{
+    font-family:'Cormorant Garamond',serif; font-style:italic;
+    font-size:16px; color:var(--gold-bright);
+    max-width:280px; margin:0 auto; line-height:1.6;
+    opacity:0; transition:opacity 1.5s ease;
+    min-height:26px;
+  }
+  .ritual-message.show{ opacity:0.9; }
+  .ritual-message.fading{ opacity:0; transition:opacity 3s ease; }
+
+  .gone-inscription{
+    font-family:'Cormorant Garamond',serif; font-style:italic;
+    font-size:16px; color:var(--gold-bright);
+    margin:22px 0; line-height:1.6;
+  }
+  .gone-inscription::before{ content:'"'; }
+  .gone-inscription::after{ content:'"'; }
+
+  .keepsake{
+    margin:8px 0 30px;
+    padding:24px 20px;
+    background:var(--card-bg);
+    border:1px solid var(--card-border);
+    border-radius:6px;
+  }
+  .keepsake-label{
+    font-size:11px; letter-spacing:0.06em; color:var(--text-dim);
+    line-height:1.6; margin-bottom:18px;
+  }
+  .keepsake-preview{
+    width:100%; max-width:280px; border-radius:4px;
+    border:1px solid var(--card-border);
+    margin-bottom:18px;
+    display:block; margin-left:auto; margin-right:auto;
+  }
+  .keepsake-download{
+    display:inline-block; width:100%; padding:13px 0;
+    border-radius:3px; border:1px solid var(--gold);
+    background:var(--gold); color:#17130c; text-decoration:none;
+    font-size:11.5px; letter-spacing:0.1em; text-transform:uppercase;
+    font-weight:600; text-align:center; box-sizing:border-box;
+    transition:background 0.2s ease;
+  }
+  .keepsake-download:hover{ background:var(--gold-bright); }
+
   .sound-hint{
     font-size:10px; color:var(--text-faint); margin-top:14px; opacity:0.7;
   }
@@ -210,6 +274,15 @@
     <div class="ash-mark" id="ashMark"></div>
     <h1 id="tierTitle"></h1>
     <div class="tier-name" id="editionLabel"></div>
+
+    <div class="inscription-field" id="inscriptionField">
+      <label for="inscriptionInput">What are you lighting this instead of? <span style="opacity:0.6;">(optional)</span></label>
+      <textarea id="inscriptionInput" rows="2" maxlength="140" placeholder="A word for yourself, if you like…"></textarea>
+      <div class="char-count"><span id="charCount">0</span>/140</div>
+    </div>
+
+    <div class="ritual-message" id="ritualMessage"></div>
+
     <button class="light-btn" id="lightBtn">Light this instead</button>
     <div class="smoking-note" id="smokingNote"></div>
     <div class="footlinks"><a href="verify.html">Verify this certificate</a></div>
@@ -222,6 +295,14 @@
       Like the real thing, it only burns once.
       <span class="date" id="smokedDate"></span>
     </p>
+    <p class="gone-inscription" id="goneInscription" style="display:none;"></p>
+
+    <div class="keepsake" id="keepsakeSection" style="display:none;">
+      <div class="keepsake-label">A Founder's Cut piece, once smoked, leaves this behind</div>
+      <img class="keepsake-preview" id="keepsakePreview" alt="Your Founder's Cut keepsake artwork">
+      <a class="keepsake-download" id="keepsakeDownload" download>Download your artwork</a>
+    </div>
+
     <a class="buy-again" href="mint.html">Light another</a>
     <div class="footlinks"><a href="verify.html">Verify this certificate</a></div>
   </div>
@@ -255,10 +336,40 @@
     const editionText = cert.edition_total ? `Edition ${cert.edition} of ${cert.edition_total}` : `Edition #${cert.edition}`;
     document.getElementById('goneTierLabel').textContent = `${cert.tier} — ${editionText}`;
     document.getElementById('smokedDate').textContent = 'Smoked on ' + formatDate(status.smokedAt);
+
+    const inscriptionEl = document.getElementById('goneInscription');
+    if (status.message) {
+      // textContent only — never innerHTML — since this is free-form
+      // user input being redisplayed. No injection risk this way.
+      inscriptionEl.textContent = status.message;
+      inscriptionEl.style.display = 'block';
+    } else {
+      inscriptionEl.style.display = 'none';
+    }
+
+    // Founder's Cut only: the keepsake artwork assigned at issuance.
+    // Randomized once, permanently, when the certificate was created —
+    // this always shows the SAME artwork for a given certificate, not a
+    // new random pick each time this page loads.
+    const keepsakeSection = document.getElementById('keepsakeSection');
+    if (cert.founderArtwork) {
+      const num = String(cert.founderArtwork).padStart(2, '0');
+      const src = `founder-art/founder-${num}.jpg`;
+      document.getElementById('keepsakePreview').src = src;
+      document.getElementById('keepsakeDownload').href = src;
+      document.getElementById('keepsakeDownload').download = `maison-noir-founders-cut-${num}.jpg`;
+      keepsakeSection.style.display = 'block';
+    } else {
+      keepsakeSection.style.display = 'none';
+    }
+
     showState('goneState');
   }
 
+  let currentTier = null;
+
   function renderUnlit(cert){
+    currentTier = cert.tier;
     document.getElementById('piece').className = 'piece ' + (tierClassMap[cert.tier] || 't-gold');
     document.getElementById('tierTitle').textContent = cert.tier;
     document.getElementById('editionLabel').textContent = cert.edition_total ? `Edition ${cert.edition} of ${cert.edition_total}` : `Edition #${cert.edition}`;
@@ -281,6 +392,12 @@
       showState('errorState');
     }
   }
+
+  const inscriptionInput = document.getElementById('inscriptionInput');
+  const charCount = document.getElementById('charCount');
+  inscriptionInput.addEventListener('input', () => {
+    charCount.textContent = inscriptionInput.value.length;
+  });
 
   /* ================= ambient background embers (always drifting, subtle) ================= */
   const ambientCanvas = document.getElementById('ambient-canvas');
@@ -369,25 +486,56 @@
     });
   }
 
+  // Platinum-only: occasional bright shimmer flecks mixed into the smoke,
+  // distinct from the regular soft particles — quick to appear, quick to
+  // fade, giving the smoke a faint glinting quality that matches the
+  // tier's silver palette. Nothing else in the collection has this.
+  function spawnGlint(){
+    const p = getTipPos();
+    particles.push({
+      x: p.x + (Math.random()-0.5)*10,
+      y: p.y - Math.random()*20,
+      vx: (Math.random()-0.5)*0.1,
+      vy: -(0.15 + Math.random()*0.15),
+      r: 0.5 + Math.random()*0.5,
+      life: 0,
+      maxLife: 60 + Math.random()*40,
+      wobble: Math.random()*Math.PI*2,
+      wobbleSpeed: 0.02,
+      alpha: 0.85,
+      glint: true
+    });
+  }
+
   function smokeLoop(){
     const stage = document.querySelector('#unlit .stage');
     if (!stage) { smokeAnimId = null; return; }
     const r = stage.getBoundingClientRect();
     ctx.clearRect(0,0,r.width,r.height);
 
+    const isPlatinum = currentTier === 'Platinum';
+
     if (smokeActive && Math.random() < 0.65) spawnSmoke(1);
+    if (smokeActive && isPlatinum && Math.random() < 0.06) spawnGlint();
 
     particles.forEach(p=>{
       p.life++;
       p.wobble += p.wobbleSpeed;
       p.x += p.vx + Math.sin(p.wobble)*0.22;
       p.y += p.vy;
-      p.r += 0.045;
+      if (!p.glint) p.r += 0.045;
       const t = p.life / p.maxLife;
       const a = p.alpha * (1 - t) * (t < 0.08 ? t/0.08 : 1);
+
+      // Platinum's regular smoke runs cooler/silvery instead of warm cream;
+      // glint particles are always a bright, near-white spark regardless.
+      const color = p.glint
+        ? '235,240,245'
+        : (isPlatinum ? '215,222,230' : '226,220,208');
+
       const grad = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*2.2);
-      grad.addColorStop(0, `rgba(226,220,208,${a})`);
-      grad.addColorStop(1, 'rgba(226,220,208,0)');
+      grad.addColorStop(0, `rgba(${color},${a})`);
+      grad.addColorStop(1, `rgba(${color},0)`);
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(p.x,p.y,p.r*2.2,0,Math.PI*2);
@@ -492,6 +640,27 @@
     }, 1300);
   }
 
+  // Platinum-only: a soft, bell-like two-note chime layered under the
+  // ordinary catch sound — nothing else in the collection has this, so
+  // the moment of ignition genuinely sounds different, not just longer.
+  function playShimmerChime(){
+    const ctx = ensureAudio();
+    const now = ctx.currentTime;
+    const freqs = [1318.51, 1975.53]; // a clean fifth, E6 + B6 — delicate, not musical-toy-like
+    freqs.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.05, now + 0.02 + i * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(now + i * 0.06);
+      osc.stop(now + 1.5);
+    });
+  }
+
   /* ================= the actual lighting ritual ================= */
   function flameFlourish(){
     return new Promise(resolve => {
@@ -500,6 +669,7 @@
       flame.classList.add('active');
       setTimeout(() => {
         playCatch();
+        if (currentTier === 'Platinum') playShimmerChime();
         resolve();
       }, 650);
     });
@@ -507,6 +677,7 @@
 
   document.getElementById('lightBtn').addEventListener('click', async () => {
     const btn = document.getElementById('lightBtn');
+    const inscription = inscriptionInput.value.trim();
     btn.disabled = true;
     btn.textContent = 'Lighting…';
     ensureAudio();
@@ -514,7 +685,7 @@
     const consumePromise = fetch('/api/log-light', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cert: certId })
+      body: JSON.stringify({ cert: certId, message: inscription })
     }).then(r => r.json());
 
     let result;
@@ -531,13 +702,36 @@
     const piece = document.getElementById('piece');
     piece.classList.add('lit');
     btn.classList.add('hidden');
+    document.getElementById('inscriptionField').style.display = 'none';
     smokeActive = true;
     if (!smokeAnimId) smokeLoop();
     startHiss();
 
+    const isPlatinum = currentTier === 'Platinum';
+    // Platinum gets a longer, more deliberate ritual — a slower burn-down
+    // (overriding the CSS transition duration inline, leaving the same
+    // easing curve untouched) and more time spent smoking before it
+    // starts. Every other tier keeps the original pacing.
+    const smokeDuration = isPlatinum ? 11000 : 8000;
+    const burnDuration = isPlatinum ? 6000 : 4500;
+    const goneDelay = isPlatinum ? 17800 : 13200;
+    if (isPlatinum) {
+      piece.style.transitionDuration = burnDuration + 'ms';
+    }
+
     const note = document.getElementById('smokingNote');
-    note.textContent = 'Burning slowly…';
+    note.textContent = isPlatinum ? 'Savoring slowly…' : 'Burning slowly…';
     note.classList.add('show');
+
+    // Show the actual saved message back (the server may have trimmed or
+    // sanitized it slightly differently than what's in the input) — fades
+    // in alongside the smoke, and dissolves along with it later.
+    const ritualMessage = document.getElementById('ritualMessage');
+    const savedMessage = result && result.status && result.status.message;
+    if (savedMessage) {
+      ritualMessage.textContent = savedMessage;
+      ritualMessage.classList.add('show');
+    }
 
     // A longer, unhurried smoking phase — this is the one moment of the
     // whole product, so it earns real time rather than feeling rushed.
@@ -547,13 +741,15 @@
       note.classList.remove('show');
       piece.classList.add('burning');
       document.getElementById('ashMark').classList.add('show');
-    }, 8000);
+      // The words go up in smoke along with the piece itself.
+      if (savedMessage) ritualMessage.classList.add('fading');
+    }, smokeDuration);
 
     setTimeout(async () => {
       const finalRes = await fetch(`/api/get-ritual?cert=${encodeURIComponent(certId)}`);
       const data = await finalRes.json();
       renderGone(data.certificate, data.status);
-    }, 13200);
+    }, goneDelay);
   });
 
   load();
