@@ -43,7 +43,7 @@
     -webkit-font-smoothing:antialiased;
   }
   #ambient-canvas{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; opacity:0.45; z-index:0; }
-  .wrap{ position:relative; z-index:1; max-width:480px; margin:0 auto; padding:56px 24px 80px; text-align:center; }
+  .wrap{ position:relative; z-index:1; max-width:480px; margin:0 auto; padding:130px 24px 80px; text-align:center; }
   .brand{
     font-family:'Cormorant Garamond',serif;
     letter-spacing:0.42em; text-indent:0.42em;
@@ -156,9 +156,76 @@
   }
 
   .error p{ color:var(--text-dim); font-size:14px; line-height:1.7; }
+  /* ---------- nav (same component as the rest of the site) ---------- */
+  .site-nav{
+    position:fixed; top:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 40px;
+    z-index:200;
+    background:rgba(8,7,6,0.6);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(255,255,255,0.05);
+  }
+  .site-nav .brand-link{
+    font-family:'Cormorant Garamond',serif;
+    font-size:15px; letter-spacing:0.38em; text-indent:0.38em;
+    color:var(--text); text-decoration:none; white-space:nowrap;
+  }
+  .site-nav .nav-links{ display:flex; align-items:center; gap:30px; list-style:none; }
+  .site-nav .nav-links a{
+    font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--text-dim); text-decoration:none;
+    padding-bottom:3px; border-bottom:1px solid transparent;
+    transition:color 0.2s ease, border-color 0.2s ease;
+    white-space:nowrap;
+  }
+  .site-nav .nav-links a:hover, .site-nav .nav-links a.active{ color:var(--gold); border-color:var(--gold); }
+  .menu-toggle{ display:none; background:none; border:none; cursor:pointer; padding:8px; margin:-8px; }
+  .menu-toggle span{ display:block; width:20px; height:1px; background:var(--text); margin:5px 0; transition:transform 0.25s ease, opacity 0.2s ease; }
+  .menu-toggle.open span:nth-child(1){ transform:translateY(6px) rotate(45deg); }
+  .menu-toggle.open span:nth-child(2){ opacity:0; }
+  .menu-toggle.open span:nth-child(3){ transform:translateY(-6px) rotate(-45deg); }
+  .mobile-menu{
+    position:fixed; inset:0; background:rgba(5,4,3,0.98);
+    backdrop-filter:blur(8px); z-index:190;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;
+    opacity:0; pointer-events:none; transition:opacity 0.35s ease;
+  }
+  .mobile-menu.open{ opacity:1; pointer-events:auto; }
+  .mobile-menu a{ font-family:'Cormorant Garamond',serif; font-size:26px; color:var(--text); text-decoration:none; }
+  .mobile-menu a:hover, .mobile-menu a.active{ color:var(--gold); }
+  @media (max-width:760px){
+    .site-nav{ padding:18px 22px; }
+    .site-nav .nav-links{ display:none; }
+    .menu-toggle{ display:block; }
+    .site-nav .brand-link{ font-size:13px; letter-spacing:0.3em; text-indent:0.3em; }
+  }
+
 </style>
 </head>
 <body>
+<nav class="site-nav">
+  <a class="brand-link" href="index.html">Maison&nbsp;Noir</a>
+  <ul class="nav-links">
+    <li><a href="about.html" data-page="about.html">About</a></li>
+    <li><a href="index.html#demo" data-page="demo">Try It</a></li>
+    <li><a href="mint.html" data-page="mint.html">Collection</a></li>
+    <li><a href="verify.html" data-page="verify.html">Verify</a></li>
+  </ul>
+  <button class="menu-toggle" id="menuToggle" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html" data-page="index.html">Home</a>
+  <a href="about.html" data-page="about.html">About</a>
+  <a href="index.html#demo" data-page="demo">Try It</a>
+  <a href="mint.html" data-page="mint.html">Collection</a>
+  <a href="verify.html" data-page="verify.html">Verify</a>
+</div>
+
 <canvas id="ambient-canvas"></canvas>
 <div class="wrap">
   <div class="brand">Maison&nbsp;Noir</div>
@@ -252,6 +319,32 @@
     requestAnimationFrame(ambientLoop);
   }
   ambientLoop();
+
+  /* mobile nav menu */
+  const menuToggle = document.getElementById('menuToggle');
+  const mobileMenu = document.getElementById('mobileMenu');
+  menuToggle.addEventListener('click', () => {
+    const isOpen = mobileMenu.classList.toggle('open');
+    menuToggle.classList.toggle('open', isOpen);
+    menuToggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  });
+  mobileMenu.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      mobileMenu.classList.remove('open');
+      menuToggle.classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  });
+  
+  /* highlight the current page in nav */
+  (function(){
+    const path = window.location.pathname.split('/').pop() || 'index.html';
+    document.querySelectorAll('.nav-links a[data-page], .mobile-menu a[data-page]').forEach(a => {
+      if (a.dataset.page === path) a.classList.add('active');
+    });
+  })();
+  
 
   // This writes to a debug line that's visible on-screen from the very
   // first moment the page loads — not hidden inside a later state — so
